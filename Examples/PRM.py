@@ -245,6 +245,7 @@ class PRM:
 
         ### YOUR CODE HERE ###
         # Use existing KD tree to search area without increasing runtime complexity
+
         self.samples = np.vstack((self.samples, np.asarray(start)))
         self.samples = np.vstack((self.samples, np.asarray(goal)))
 
