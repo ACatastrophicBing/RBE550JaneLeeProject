@@ -2,6 +2,14 @@ from numpy import sin,cos,degrees,radians,ndarray,sqrt
 from matplotlib.pyplot import imread
 from Box2D import b2,b2PolygonShape,b2ContactListener
 from Box2D import b2Vec2 as Vector
+from math import cos,sin,radians
+from Box2D import b2RayCastCallback
+
+from IPython.display import clear_output
+import matplotlib
+from matplotlib import pyplot as plt
+from matplotlib.patches import Circle, Rectangle
+from matplotlib.collections import PatchCollection
 
 import matplotlib
 matplotlib.rcParams["figure.figsize"]=10,8
@@ -52,13 +60,10 @@ def hat(vec):
     return v2
 
 def vec_mag_ang(mag,ang):
-    from Box2D import b2Vec2 as Vector
-    from math import cos,sin,radians
     x=mag*cos(radians(ang))
     y=mag*sin(radians(ang))
     return Vector(x,y)
 
-from Box2D import b2RayCastCallback
 class RayCastMultipleCallback(b2RayCastCallback):
     """This raycast collects multiple hits."""
 
@@ -1093,12 +1098,6 @@ def message2str(message):
 
 
 def display(env,robot=None,show=True):
-    from IPython.display import clear_output
-    import matplotlib
-    from matplotlib import pyplot as plt
-    from matplotlib.patches import Circle,Rectangle
-    from matplotlib.collections import PatchCollection 
-
 
     clear_output(wait=True)
     fig=plt.figure(figsize=(env.figure_width,env.height*env.figure_width/env.width))

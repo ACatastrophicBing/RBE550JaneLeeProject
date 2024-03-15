@@ -1,8 +1,0 @@
-Metadata-Version: 2.1
-Name: RobotSim373
-Version: 0.0.49
-Summary: RobotSim373
-Author: Brian Blais
-Requires-Dist: box2d
-Requires-Dist: python-pptx
-Requires-Dist: matplotlib
