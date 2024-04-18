@@ -226,36 +226,23 @@ if __name__ == "__main__":
     sim = Simulator(env, 1, rand_obstacles=4, wrld_size=wrld_size)
     map = sim.map
 
-    map.update()  # Optional, depending on if and how you update the map information
+    map.update() 
 
     pos = map.robots['center'].position
     start_pos = map.world_to_map([pos.x,pos.y])
-    end_pos = (20, 20)  # Desired target position
+    end_pos = (20, 20)  # target position
 
-    # Generate waypoints from the PRM
-    map.PRM.sample(n_pts=1000, sampling_method="random")  # or any other sampling method
-    map.PRM.search(start_pos, map.world_to_map(end_pos))  # Using the search method to find the path
+    map.PRM.sample(n_pts=200, sampling_method="random")  
+    map.PRM.search(start_pos, map.world_to_map(end_pos))  
 
-    # Convert PRM path to waypoints if needed
     if map.PRM.path:
-        # Filter out 'start' and 'goal' from the path
+        # Filter  'start' and 'goal' 
         waypoints = [map.map_to_world(map.PRM.samples[idx]) for idx in map.PRM.path if isinstance(idx, int)]
         controller = TrajectoryController(waypoints)
         run_sim(env, lambda t, robot: act(t, robot, controller), figure_width=6, total_time=300, dt_display=10)
-        map.visualize()
+        # map.visualize()
     else:
         print("No path found between the start and end positions.")
 
-
-
-# if __name__ == "__main__":
-#     wrld_size = [24,24]
-#     env = Environment(wrld_size[0], wrld_size[1])
-#     num_robots = 1
-#     sim = Simulator(env, 1, rand_obstacles=0,wrld_size=wrld_size)
-#     map = sim.map
-#     run_sim(env, act, figure_width=6, total_time=50, dt_display=2)
-#     # map.update()
-#     # map.visualize()
 
 # NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))

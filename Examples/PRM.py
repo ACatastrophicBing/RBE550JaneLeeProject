@@ -160,33 +160,36 @@ class PRM:
         # Create empty map
         fig, ax = plt.subplots()
         img = 255 * np.dstack((self.map_array, self.map_array, self.map_array))
-        ax.imshow(img)
+        img_rotated = np.rot90(img, k=1)  # Rotate 90 degrees counterclockwise
+        ax.imshow(img_rotated)
 
         # Draw graph
         # get node position (swap coordinates)
         node_pos = np.array(self.samples)[:, [1, 0]]
-        pos = dict( zip( range( len(self.samples) ), node_pos) )
-        pos['start'] = (self.samples[-2][1], self.samples[-2][0])
-        pos['goal'] = (self.samples[-1][1], self.samples[-1][0])
-        
+        # Rotate positions for the display
+        rotated_pos = {i: (pos[1], self.map_array.shape[0] - pos[0]) for i, pos in enumerate(node_pos)}
+        rotated_pos['start'] = (node_pos[-2][1], self.map_array.shape[0] - node_pos[-2][0])
+        rotated_pos['goal'] = (node_pos[-1][1], self.map_array.shape[0] - node_pos[-1][0])
+
         # draw constructed graph
-        nx.draw(self.graph, pos, node_size=3, node_color='y', edge_color='y' ,ax=ax)
+        nx.draw(self.graph, rotated_pos, node_size=3, node_color='y', edge_color='y', ax=ax)
 
         # If found a path
         if self.path:
             # add temporary start and goal edge to the path
             final_path_edge = list(zip(self.path[:-1], self.path[1:]))
-            nx.draw_networkx_nodes(self.graph, pos=pos, nodelist=self.path, node_size=8, node_color='b')
-            nx.draw_networkx_edges(self.graph, pos=pos, edgelist=final_path_edge, width=2, edge_color='b')
+            nx.draw_networkx_nodes(self.graph, pos=rotated_pos, nodelist=self.path, node_size=8, node_color='b')
+            nx.draw_networkx_edges(self.graph, pos=rotated_pos, edgelist=final_path_edge, width=2, edge_color='b')
 
         # draw start and goal
-        nx.draw_networkx_nodes(self.graph, pos=pos, nodelist=['start'], node_size=12,  node_color='g')
-        nx.draw_networkx_nodes(self.graph, pos=pos, nodelist=['goal'], node_size=12,  node_color='r')
+        nx.draw_networkx_nodes(self.graph, pos=rotated_pos, nodelist=['start'], node_size=12, node_color='g')
+        nx.draw_networkx_nodes(self.graph, pos=rotated_pos, nodelist=['goal'], node_size=12, node_color='r')
 
         # show image
         plt.axis('on')
         ax.tick_params(left=True, bottom=True, labelleft=True, labelbottom=True)
         plt.show()
+
 
 
     def sample(self, n_pts=1000, sampling_method="uniform"):
