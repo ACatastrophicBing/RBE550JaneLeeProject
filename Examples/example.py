@@ -15,19 +15,46 @@ import skimage as ski
 
 
 class Map:
-    def __init__(self, env, robots, boxes,definition=[100,100], lidar_range=0,wrld_size=[24,24]):
+    def __init__(self, env, robot, boxes,definition=[100,100], lidar_range=0,wrld_size=[24,24], map_update_rate = 10):
         self.env = env               # The environment we are in
-        self.robots = robots         # How many actors we have in the environment that are mapping
+        self.robot = robot         # How many actors we have in the environment that are mapping
         self.definition = definition # How detailed of a map we want
         self.lidar_range = lidar_range
         self.wrld_size = wrld_size
         self.map = np.full((definition[0], definition[1]),1)
         self.boxes = [box.body for box in boxes]
         self.PRM = PRM(self.map)
+        self.cell_map = []
 
-    def update(self):
+        self.robot_position = self.world_to_map(self.robot['center'].position)
+        self.create_cell_map()
+        self.robot_flag = False # If the robot updates its position in world, flag this
+        self.map_flag = False   # If the map has any changes compared to what it previously was, flag this
+        self.map_update_rate = map_update_rate # How often we check the map to update things, map will also update if robot moves
+
+        self.update_global_map()
+        self.robot_map = self.map.copy()
+
+    def update(self, tick):
         # for robot in self.robots:
         #     continue
+        self.update_global_map()
+
+        perceived_position = self.world_to_map(self.robot['center'].position)
+        if perceived_position != self.robot_position:
+            self.robot_flag = True
+            self.robot_position = perceived_position
+        else:
+            self.robot_flag = False
+        if tick % self.map_update_rate == 0 or self.robot_flag:
+            for pos in self.cell_map:
+                x = pos[0] + self.robot_position[0]
+                y = pos[1] + self.robot_position[1]
+                if 0 <= x < self.definition[0] and 0 <= y < self.definition[1]:
+                    self.robot_map[x][y] = self.map[x][y]
+
+
+    def update_global_map(self):
         for box in self.boxes:
             angle = box.angle
             position = self.world_to_map(box.position)
@@ -37,6 +64,7 @@ class Map:
                              self.world_to_map(self.rotate(box.fixtures[0].shape.vertices[vert%vertices], angle)),
                              self.world_to_map(self.rotate(box.fixtures[0].shape.vertices[(vert+1)%vertices], angle)))
             self.fill_inside_box(position)
+
 
     def world_to_map(self,p1):
         return (math.floor(p1[0]/self.wrld_size[0] * self.definition[0]), math.floor(p1[1]/self.wrld_size[1] * self.definition[1]))
@@ -64,11 +92,30 @@ class Map:
             self.map[line[0][i]][line[1][i]] = 0
 
     def visualize(self):
-        pos = self.robots['center'].position
+        pos = self.robot['center'].position
         pos = self.world_to_map([pos.x,pos.y])
         self.PRM.sample(n_pts=1000, sampling_method="random")
         self.PRM.search(pos, self.world_to_map([20,10]))
         self.PRM.draw_map()
+
+    def create_cell_map(self):
+        """
+        Creates a cell map that stores all the cells within a given radius around 0,0 to update our map.
+
+        Args:
+        radius (int): The radius to consider.
+
+        Returns:
+        cell_map : A list of all the cell map which we can loop over
+        """
+        radius = self.lidar_range
+
+        # Populate the cell map
+        for x in range(-radius, radius):
+            for y in range(-radius, radius):
+                distance = math.sqrt((x ** 2) + (y ** 2))
+                if distance <= radius:
+                    self.cell_map.append([x,y])
 
 class Simulator:
     def __init__(self, env, num_robots, rand_obstacles=0, map_selector=None,wrld_size=[24,24]):
@@ -116,6 +163,7 @@ class Simulator:
 
 sim = None
 map = None
+robot_map = None
 
 def act(t, robot):
     # TODO  Modify the robotsim.py to simulate multiple robots at once
@@ -133,6 +181,9 @@ def act(t, robot):
 
     robot.message = distance
 
+    map.update(t)
+
+
 def robot_controller( robot):
     return [0,0]
 
@@ -143,7 +194,6 @@ if __name__ == "__main__":
     sim = Simulator(env, 1, rand_obstacles=20,wrld_size=wrld_size)
     map = sim.map
     run_sim(env, act, figure_width=6, total_time=13, dt_display=10)
-    map.update()
     map.visualize()
 
 # NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))

@@ -1,17 +1,16 @@
 from numpy import sin,cos,degrees,radians,ndarray,sqrt
-from matplotlib.pyplot import imread
 from Box2D import b2,b2PolygonShape,b2ContactListener
 from Box2D import b2Vec2 as Vector
 from math import cos,sin,radians
 from Box2D import b2RayCastCallback
 
 from IPython.display import clear_output
-import matplotlib
-from matplotlib import pyplot as plt
-from matplotlib.patches import Circle, Rectangle
-from matplotlib.collections import PatchCollection
 
 import matplotlib
+import matplotlib.pyplot as plt
+from matplotlib.collections import PatchCollection
+from matplotlib.pyplot import imread
+
 matplotlib.rcParams["figure.figsize"]=10,8
 matplotlib.rcParams["axes.titlesize"]=24
 matplotlib.rcParams["axes.labelsize"]=20
