@@ -115,76 +115,117 @@ class Simulator:
 
     def randbetween(low, high):
         return np.random.rand() * (high - low) + low
-    
 
-def act(t, robot):
-    #EVERYTHING IS IN DEGREES 
-    target_x = 15  
-    target_y = 15  
+class TrajectoryController:
+    def __init__(self, waypoints):
+        self.waypoints = waypoints
+        self.current_waypoint_index = 0
+        self.reached_destination = False
+
+    def update_target(self, robot):
+        if self.reached_destination:
+            return None, None  #done
+
+        target_x, target_y = self.waypoints[self.current_waypoint_index]
+        dx = target_x - robot['center'].x
+        dy = target_y - robot['center'].y
+        distance = np.sqrt(dx**2 + dy**2)
+
+        if distance < 2:  # update to next one 
+            print("DONEEE")
+            self.current_waypoint_index += 1
+            if self.current_waypoint_index >= len(self.waypoints):
+                self.reached_destination = True
+                return None, None
+            else:
+                target_x, target_y = self.waypoints[self.current_waypoint_index]
+
+        return target_x, target_y
+
+
+def act(t, robot, controller):
+    target = controller.update_target(robot)
+    if target is (None,None):
+        print("Robot has reached the final destination")
+        robot['left'].F = 0
+        robot['right'].F = 0
+        return  #
+
+    target_x, target_y = target
+    print(f"Target Coordinates: {target_x}, {target_y}")
+
     base_speed = 0.6  
     base_turn_speed = 0.2  
     angle_tolerance = 5  
     Kp_distance = 0.02 
     Kp_angle = 0.05  
-    robot_to_target = 2  # Distance threshold to be considered "close" to the target
-
+    robot_to_target = 1  #do not make it too close not tuned well 
 
     # Direction and distance
+    print("target",target)
     dx = target_x - robot['center'].x
     dy = target_y - robot['center'].y
-    print("Robot X", robot['center'].x)
-    print("Robot Y", robot['center'].x)
+    print("Robot X", robot['center'].x)  
+    print("Robot Y", robot['center'].y)  
 
     distance_to_target = np.sqrt(dx**2 + dy**2)
     angle_to_target = np.degrees(np.arctan2(dy, dx))
     
     # Robot's current orientation
     robot_angle = robot['center'].angle % 360
-    print("Robot Angle",robot_angle)
+    print("Robot Angle", robot_angle)  
 
     # Calculate the shortest angle to the target
     angle_diff = (angle_to_target - robot_angle + 180) % 360 - 180
-    print("Robot Angle Difference",angle_diff)
+    print("Robot Angle Difference", angle_diff)  
 
     # Adjust speed
     speed = min(base_speed, Kp_distance * distance_to_target)
     if distance_to_target > robot_to_target:
         turn_speed = min(base_turn_speed, Kp_angle * abs(angle_diff))
-
         if abs(angle_diff) > angle_tolerance:  # Need to turn
             turn_direction = np.sign(angle_diff)
-            print("Robot turning")
+            print("Robot turning") 
             robot['left'].F = -turn_direction * turn_speed
             robot['right'].F = turn_direction * turn_speed
-            print("speed left",-turn_direction * turn_speed)
-            print("speed right",turn_direction * turn_speed)
-
-
+            print("speed left", -turn_direction * turn_speed) 
+            print("speed right", turn_direction * turn_speed) 
         else:  # Move forward
-            print("Robot going straight")
-            print("speed",speed)
+            print("Robot going straight")  
+            print("speed", speed)  
             robot['left'].F = speed
             robot['right'].F = speed
 
-    # Stop when you are close by 
-    if distance_to_target < 3: 
-        print("Robot at the target")
-        print("speed",speed)
+    # Stop when close to target
+    if distance_to_target < 2: 
+        print("Robot at the target")  
+        print("speed", speed)  
         robot['left'].F = 0
         robot['right'].F = 0
 
 
-def robot_controller( robot):
-    return [0,0]
 
 if __name__ == "__main__":
     wrld_size = [24,24]
     env = Environment(wrld_size[0], wrld_size[1])
     num_robots = 1
-    sim = Simulator(env, 1, rand_obstacles=0,wrld_size=wrld_size)
+    sim = Simulator(env, 1, rand_obstacles=4, wrld_size=wrld_size)
     map = sim.map
-    run_sim(env, act, figure_width=6, total_time=50, dt_display=2)
-    # map.update()
-    # map.visualize()
+
+    waypoints = [(5,5), (10,10), (15,15), (20,10),(10,10)]  # Define waypoints
+    controller = TrajectoryController(waypoints)
+
+    run_sim(env, lambda t, robot: act(t, robot, controller), figure_width=6, total_time=300, dt_display=10)
+
+
+# if __name__ == "__main__":
+#     wrld_size = [24,24]
+#     env = Environment(wrld_size[0], wrld_size[1])
+#     num_robots = 1
+#     sim = Simulator(env, 1, rand_obstacles=0,wrld_size=wrld_size)
+#     map = sim.map
+#     run_sim(env, act, figure_width=6, total_time=50, dt_display=2)
+#     # map.update()
+#     # map.visualize()
 
 # NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))

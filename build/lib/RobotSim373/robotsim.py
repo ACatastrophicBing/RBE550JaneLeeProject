@@ -447,8 +447,7 @@ class Robot(object):
         
         self._color='g'
         self.objects=[]
-        self.path = []  # List to store the positions for path tracing
-
+        
         self.message=None
         self.storage=Storage()
         self.log=[]
@@ -1106,7 +1105,6 @@ def display(env,robot=None,show=True):
     fig.clear()
 
     ax=fig.subplots()
-    
 
     if not env.im is None:
         ax.imshow(env.im,
@@ -1116,6 +1114,7 @@ def display(env,robot=None,show=True):
         if env.show_boundary:
             bx,by=env.boundary.userData['x'],env.boundary.userData['y']
             plt.plot(bx,by,'r--',linewidth=1)
+
 
     if not robot is None:
         patches,colors = zip(*[(b.patch(),b.color) for b in env.objects+robot.objects])
@@ -1158,7 +1157,7 @@ def run_sim(env,act,total_time,dt=1.0/60,dt_display=1,
             figure_width=10,
             plot_orientation=True,
             show_boundary=False):
-
+    
     
     env.t=0
     env.dt=dt
