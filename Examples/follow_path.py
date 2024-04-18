@@ -71,6 +71,20 @@ class Map:
         self.PRM.search(pos, self.world_to_map([20,10]))
         self.PRM.draw_map()
 
+    def map_to_world(self, p1):
+        return (p1[0] / self.definition[0] * self.wrld_size[0],
+                p1[1] / self.definition[1] * self.wrld_size[1])
+
+        
+    def calculate_path(self, start_pos, end_pos):
+        start = self.world_to_map(start_pos)
+        end = self.world_to_map(end_pos)
+        path = self.PRM.search(start, end)
+        if path is not None:
+            # Convert path back to world coordinates
+            return [self.map_to_world(p) for p in path]
+        return []
+
 class Simulator:
     def __init__(self, env, num_robots, rand_obstacles=0, map_selector=None,wrld_size=[24,24]):
         self.env = env
@@ -212,10 +226,26 @@ if __name__ == "__main__":
     sim = Simulator(env, 1, rand_obstacles=4, wrld_size=wrld_size)
     map = sim.map
 
-    waypoints = [(5,5), (10,10), (15,15), (20,10),(10,10)]  # Define waypoints
-    controller = TrajectoryController(waypoints)
+    map.update()  # Optional, depending on if and how you update the map information
 
-    run_sim(env, lambda t, robot: act(t, robot, controller), figure_width=6, total_time=300, dt_display=10)
+    pos = map.robots['center'].position
+    start_pos = map.world_to_map([pos.x,pos.y])
+    end_pos = (20, 20)  # Desired target position
+
+    # Generate waypoints from the PRM
+    map.PRM.sample(n_pts=1000, sampling_method="random")  # or any other sampling method
+    map.PRM.search(start_pos, map.world_to_map(end_pos))  # Using the search method to find the path
+
+    # Convert PRM path to waypoints if needed
+    if map.PRM.path:
+        # Filter out 'start' and 'goal' from the path
+        waypoints = [map.map_to_world(map.PRM.samples[idx]) for idx in map.PRM.path if isinstance(idx, int)]
+        controller = TrajectoryController(waypoints)
+        run_sim(env, lambda t, robot: act(t, robot, controller), figure_width=6, total_time=300, dt_display=10)
+        map.visualize()
+    else:
+        print("No path found between the start and end positions.")
+
 
 
 # if __name__ == "__main__":
