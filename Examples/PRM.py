@@ -163,6 +163,7 @@ class PRM:
         img_rotated = np.rot90(img, k=1)  # Rotate 90 degrees counterclockwise
         ax.imshow(img_rotated)
 
+
         # Draw graph
         # get node position (swap coordinates)
         node_pos = np.array(self.samples)[:, [1, 0]]

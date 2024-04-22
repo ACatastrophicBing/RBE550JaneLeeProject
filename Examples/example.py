@@ -312,6 +312,17 @@ def act(t, robot):
             human.F = 0.1
 
 
+    map.update(t)
+
+    for human in sim.humans:
+        if human.read_distance() < 2:
+            # Turn
+            human.F = 0
+            human.τ = 0.01
+        else:
+            human.F = 0.1
+
+
 def robot_controller( robot):
     return [0,0]
 
