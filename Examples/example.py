@@ -126,7 +126,7 @@ class Simulator:
         if map_selector is not None:
             # TODO : Create maps to allow robots to properly explore environment
             placeholder = 0
-            if map_selector == 1:
+            if map_selector == 1: # Labyrinth
                 obstacle_color = 'purple'
                 self.obstacles.append(Box(self.env, x=20.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
                 self.obstacles.append(Box(self.env, x=28.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
@@ -157,9 +157,38 @@ class Simulator:
                 self.obstacles.append(Box(self.env, x=24.5, y=39.5, width=1, height=21, angle=0, color=obstacle_color))
                 self.obstacles.append(Box(self.env, x=24.5, y=21.5, width=9, height=1, angle=0, color=obstacle_color))
         else:
-            for i in range(rand_obstacles):
-                self.obstacles.append(Box(self.env, x=Simulator.randbetween(8, 22), y=Simulator.randbetween(8, 22),
-                    width=Simulator.randbetween(.2, 1.2), height=2, angle=Simulator.randbetween(0, 360), color='purple'))
+            obstacle_color = 'purple'
+            self.obstacles.append(Box(self.env, x=20.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=28.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=37.5, y=49, width=25, height=2, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=49.5, y=24, width=1, height=48, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=18.5, y=38.5, width=13, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=37.5, y=25, width=1, height=28, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=32.5, y=25, width=1, height=16, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=26.5, y=33.5, width=5, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=42.5, y=6.5, width=3, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=42.5, y=25.5, width=1, height=37, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=22, y=43.5, width=14, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=15.5, y=38.5, width=9, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=10.5, y=32.5, width=1, height=13, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=10.5, y=17, width=1, height=12, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=24.5, y=11.5, width=11, height=11, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=26.5, y=28.5, width=5, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=33, y=16.5, width=2, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=22, y=16.5, width=14, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=15.5, y=25, width=1, height=16, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=19.5, y=33.5, width=9, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=21.5, y=6.5, width=33, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=5.5, y=25.5, width=1, height=37, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=15, y=43.5, width=18, height=1, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=25, y=1, width=48, height=2, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=0.5, y=24, width=1, height=48, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=9.5, y=49, width=19, height=2, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=24.5, y=39.5, width=1, height=21, angle=0, color=obstacle_color))
+            self.obstacles.append(Box(self.env, x=24.5, y=21.5, width=9, height=1, angle=0, color=obstacle_color))
+            # for i in range(rand_obstacles):
+            #     self.obstacles.append(Box(self.env, x=Simulator.randbetween(8, 22), y=Simulator.randbetween(8, 22),
+            #         width=Simulator.randbetween(.2, 1.2), height=2, angle=Simulator.randbetween(0, 360), color='purple'))
 
         # for rob in range(num_robots): # TODO : Modify the environment to handle multiple robots
         #     self.robots.append(Robot(env))
@@ -218,7 +247,7 @@ def robot_controller( robot):
     return [0,0]
 
 if __name__ == "__main__":
-    wrld_size = [24,24]
+    wrld_size = [50,50]
     env = Environment(wrld_size[0], wrld_size[1])
     num_robots = 1
     sim = Simulator(env, 1, rand_obstacles=20,wrld_size=wrld_size)
