@@ -1,16 +1,17 @@
 from numpy import sin,cos,degrees,radians,ndarray,sqrt
+from matplotlib.pyplot import imread
 from Box2D import b2,b2PolygonShape,b2ContactListener
 from Box2D import b2Vec2 as Vector
 from math import cos,sin,radians
 from Box2D import b2RayCastCallback
 
 from IPython.display import clear_output
+import matplotlib
+from matplotlib import pyplot as plt
+from matplotlib.patches import Circle, Rectangle
+from matplotlib.collections import PatchCollection
 
 import matplotlib
-import matplotlib.pyplot as plt
-from matplotlib.collections import PatchCollection
-from matplotlib.pyplot import imread
-
 matplotlib.rcParams["figure.figsize"]=10,8
 matplotlib.rcParams["axes.titlesize"]=24
 matplotlib.rcParams["axes.labelsize"]=20
@@ -446,8 +447,7 @@ class Robot(object):
         
         self._color='g'
         self.objects=[]
-        self.path = []  # List to store the positions for path tracing
-
+        
         self.message=None
         self.storage=Storage()
         self.log=[]
@@ -1105,7 +1105,6 @@ def display(env,robot=None,show=True):
     fig.clear()
 
     ax=fig.subplots()
-    
 
     if not env.im is None:
         ax.imshow(env.im,
@@ -1115,6 +1114,7 @@ def display(env,robot=None,show=True):
         if env.show_boundary:
             bx,by=env.boundary.userData['x'],env.boundary.userData['y']
             plt.plot(bx,by,'r--',linewidth=1)
+
 
     if not robot is None:
         patches,colors = zip(*[(b.patch(),b.color) for b in env.objects+robot.objects])
@@ -1157,7 +1157,7 @@ def run_sim(env,act,total_time,dt=1.0/60,dt_display=1,
             figure_width=10,
             plot_orientation=True,
             show_boundary=False):
-
+    
     
     env.t=0
     env.dt=dt

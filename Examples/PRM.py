@@ -13,7 +13,7 @@ from scipy import spatial
 class PRM:
     # Constructor
     def __init__(self, map_array, neighborhood_search = 0.1, gaussian_search = 0.1):
-        self.map_array = map_array            # map array, 1->free, 0->obstacle
+        self.map_array = map_array            # map array, 0->free, 1->obstacle
         self.map_width, self.map_height = map_array.shape
         self.size_row = map_array.shape[0]    # map size
         self.size_col = map_array.shape[1]    # map size
@@ -40,7 +40,7 @@ class PRM:
         point2 = self.samples[p2]
         line = ski.draw.line(point1[0], point1[1], point2[0], point2[1]) # ndarray of int, Indices of pixels that belong to the line
         for i in range(len(line[:][0])):
-            if not self.map_array[line[0][i], line[1][i]]:
+            if self.map_array[line[0][i], line[1][i]]:
                 return True
         return False
 
@@ -79,7 +79,7 @@ class PRM:
         n_pts_h = math.floor(math.sqrt(n_pts) * (self.map_height / self.map_width))
         samples = [(math.floor(self.map_width / n_pts_w * i), math.floor(self.map_height / n_pts_h * j))
                    for i in range(n_pts_w) for j in range(n_pts_h)
-                   if self.map_array[math.floor(self.map_width / n_pts_w * i), math.floor(self.map_height / n_pts_h * j)]]
+                   if not self.map_array[math.floor(self.map_width / n_pts_w * i), math.floor(self.map_height / n_pts_h * j)]]
         self.samples = np.asarray(samples)
 
     
@@ -99,7 +99,7 @@ class PRM:
         # Generate a random point within the map boundaries from discrete uniform sampling
         x = np.random.randint(0, self.map_width, n_pts)
         y = np.random.randint(0, self.map_height, n_pts)
-        samples = [[x[i], y[i]] for i in range(n_pts) if self.map_array[x[i], y[i]]]
+        samples = [[x[i], y[i]] for i in range(n_pts) if not self.map_array[x[i], y[i]]]
         self.samples = np.asarray(samples)
 
 
@@ -115,13 +115,13 @@ class PRM:
         # Initialize graph
         self.graph.clear()
         samples = []
-        obstacle_cells = [(i, j) for i in range(self.map_width) for j in range(self.map_height) if not self.map_array[i, j]]
+        obstacle_cells = [(i, j) for i in range(self.map_width) for j in range(self.map_height) if self.map_array[i, j]]
         for sample in range(n_pts):
             rand_index = np.random.randint(0, len(obstacle_cells))
             x = int(np.random.normal(0,self.map_width*self.gaussian_search)) + obstacle_cells[rand_index][0]
             y = int(np.random.normal(0,self.map_height*self.gaussian_search)) + obstacle_cells[rand_index][1]
             if 0 <= x < self.map_width and 0 <= y < self.map_height:
-                if self.map_array[x,y]:
+                if not self.map_array[x,y]:
                     samples.append((x,y))
         self.samples = np.asarray(samples)
 
@@ -137,8 +137,7 @@ class PRM:
         # Initialize graph
         self.graph.clear()
         samples = []
-        obstacle_cells = [(i, j) for i in range(self.map_width) for j in range(self.map_height) if
-                          not self.map_array[i, j]]
+        obstacle_cells = [(i, j) for i in range(self.map_width) for j in range(self.map_height) if self.map_array[i, j]]
         for sample in range(n_pts):
             rand_index = np.random.randint(0, len(obstacle_cells))
             dx = int(np.random.normal(0, self.map_width * self.gaussian_search))
@@ -146,10 +145,10 @@ class PRM:
             dy = int(np.random.normal(0, self.map_height * self.gaussian_search))
             y = dy + obstacle_cells[rand_index][1]
             if 0 <= x < self.map_width and 0 <= y < self.map_height:
-                if not self.map_array[x, y]:
+                if self.map_array[x, y]:
                     xx = math.floor(x - (dx/2))
                     yy = math.floor(y-(dy/2))
-                    if self.map_array[xx, yy]:
+                    if not self.map_array[xx, yy]:
                         samples.append((xx, yy))
         self.samples = np.asarray(samples)
 
@@ -159,29 +158,33 @@ class PRM:
         '''
         # Create empty map
         fig, ax = plt.subplots()
-        img = 255 * np.dstack((self.map_array, self.map_array, self.map_array))
-        ax.imshow(img)
+        arr = 1 - self.map_array
+        img = 255 * np.dstack((arr, arr, arr))
+        img_rotated = np.rot90(img, k=1)  # Rotate 90 degrees counterclockwise
+        ax.imshow(img_rotated)
+
 
         # Draw graph
         # get node position (swap coordinates)
         node_pos = np.array(self.samples)[:, [1, 0]]
-        pos = dict( zip( range( len(self.samples) ), node_pos) )
-        pos['start'] = (self.samples[-2][1], self.samples[-2][0])
-        pos['goal'] = (self.samples[-1][1], self.samples[-1][0])
-        
+        # Rotate positions for the display
+        rotated_pos = {i: (pos[1], arr.shape[0] - pos[0]) for i, pos in enumerate(node_pos)}
+        rotated_pos['start'] = (node_pos[-2][1], arr.shape[0] - node_pos[-2][0])
+        rotated_pos['goal'] = (node_pos[-1][1], arr.shape[0] - node_pos[-1][0])
+
         # draw constructed graph
-        nx.draw(self.graph, pos, node_size=3, node_color='y', edge_color='y' ,ax=ax)
+        nx.draw(self.graph, rotated_pos, node_size=3, node_color='y', edge_color='y', ax=ax)
 
         # If found a path
         if self.path:
             # add temporary start and goal edge to the path
             final_path_edge = list(zip(self.path[:-1], self.path[1:]))
-            nx.draw_networkx_nodes(self.graph, pos=pos, nodelist=self.path, node_size=8, node_color='b')
-            nx.draw_networkx_edges(self.graph, pos=pos, edgelist=final_path_edge, width=2, edge_color='b')
+            nx.draw_networkx_nodes(self.graph, pos=rotated_pos, nodelist=self.path, node_size=8, node_color='b')
+            nx.draw_networkx_edges(self.graph, pos=rotated_pos, edgelist=final_path_edge, width=2, edge_color='b')
 
         # draw start and goal
-        nx.draw_networkx_nodes(self.graph, pos=pos, nodelist=['start'], node_size=12,  node_color='g')
-        nx.draw_networkx_nodes(self.graph, pos=pos, nodelist=['goal'], node_size=12,  node_color='r')
+        nx.draw_networkx_nodes(self.graph, pos=rotated_pos, nodelist=['start'], node_size=12, node_color='g')
+        nx.draw_networkx_nodes(self.graph, pos=rotated_pos, nodelist=['goal'], node_size=12, node_color='r')
 
         # show image
         plt.axis('on')
