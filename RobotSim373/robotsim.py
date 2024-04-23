@@ -605,6 +605,7 @@ class Box(object):
 
         self.parent+=self
 
+
     def read_distance(self):
         callback=RayCastMultipleCallback()
 
@@ -744,6 +745,98 @@ class Box(object):
                self.F/2*self.plot_F_scale*sin(radians(self.angle+self.F_angle))+y1)
 
         plot([x1,x2],[y1,y2],'c-',lw=1)
+
+
+class Wall(object):
+
+    def __init__(self, parent, x, y, angle=0, width=1, height=1, name=None, color='b'
+                 ):
+
+        if isinstance(parent, Environment):
+            self.env = parent
+            self.parent = parent
+        else:
+            self.env = parent.env
+            self.parent = parent
+
+        self.width = width
+        self.height = height
+
+        self.body = self.env.world.CreateStaticBody(position=(float(x), float(y)),
+                                                     angle=0,
+                                                     userData={'name': name})
+
+        self.body.angle = radians(angle)
+        self.fixture = self.body.CreatePolygonFixture(box=(self.width / 2, self.height / 2),
+                                                      userData={'name': name})
+
+        if name is None:
+            self.name = 'Wall %d' % len(self.parent.objects)
+        else:
+            self.name = name
+
+        self.contact = False
+
+        self.color = color
+
+        self.parent += self
+
+    def update(self, dt):
+        return
+
+    @property
+    def corner_position(self):
+
+        #         pos=self.position
+        #         return pos[0]-self.width/2,pos[1]-self.height/2
+
+        R = self.body.transform
+        pos = R * self.fixture.shape.vertices[0]
+        return pos
+
+    def patch(self):
+        from matplotlib.patches import Circle, Rectangle
+        return Rectangle((self.corner_x, self._corner_y),
+                         self.width, self.height,
+                         self.angle)
+
+    @property
+    def _corner_x(self):
+        return self.corner_position[0]
+
+    @property
+    def _corner_y(self):
+        return self.corner_position[1]
+
+    @property
+    def corner_x(self):
+        return self.corner_position[0]
+
+    @property
+    def corner_y(self):
+        return self.corner_position[1]
+
+    @property
+    def position(self):
+        return self.body.position
+
+    @property
+    def x(self):
+        return self.position[0]
+
+    @property
+    def y(self):
+        return self.position[1]
+
+    @property
+    def angle(self):
+        return self.body.angle * 180 / 3.14159 % 360
+
+    def plot_orientation(self):
+        from matplotlib.pyplot import plot
+        x1, y1 = self.position
+        x2, y2 = self.width / 2 * cos(radians(self.angle)) + x1, self.width / 2 * sin(radians(self.angle)) + y1
+        plot([x1, x2], [y1, y2], 'r-', lw=1)
 
 
 class Disk(object):
