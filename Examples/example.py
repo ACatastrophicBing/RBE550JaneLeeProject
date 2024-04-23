@@ -47,7 +47,7 @@ class Map:
         self.box_angles = []
         self.box_positions = []
         self.box_vertices = []
-        self.points = np.zeros([len(self.boxes) * 4, 2])
+        self.points = np.zeros([len(self.boxes) * 4, 2], dtype=int)
         for box in self.boxes:
             self.box_angles.append(box.angle)
             self.box_positions.append(self.world_to_map(box.position))
@@ -79,7 +79,7 @@ class Map:
         #     continue
         self.map_flag = False
 
-        if int(tick * 1000) - self.last_map_update > self.map_update_rate:
+        if int(tick * 1000) - self.last_map_update > self.map_update_rate and self.use_global_knowledge:
             self.update_global_map()
             self.last_map_update = tick
             self.map_flag = True
@@ -104,29 +104,51 @@ class Map:
                          + np.asarray(self.world_to_map(self.rotate(self.box_vertices[i][vert], self.box_angles[i]))))
 
                 kdtree = spatial.KDTree(self.points)
-                near = kdtree.query_ball_point(self.robot_position, r=self.lidar_range)
+                near_index = kdtree.query_ball_point(self.robot_position, r=self.lidar_range)
+                near = [self.points[p] for p in near_index]
                 for point in near:
+                    # print("Adding ", point, " to the map")
                     vert_loc = np.where(self.points == point)
                     box, vert = int(math.floor(vert_loc[0][0] / len(self.boxes))), vert_loc[0][0] % len(self.boxes)
-                    p1 = self.points[box * 4 + (vert + 1)%4]
+                    p1 = self.points[box * 4 + (vert + 1)%4].astype(int)
                     if vert == 0:
-                        p2 = self.points[box * 4 + 3]
+                        p2 = self.points[box * 4 + 3].astype(int)
                     else:
-                        p2 = self.points[box * 4 + vert - 1]
-                    line1 = ski.draw.line(point[0], point[1], p1[0], p1[1])
+                        p2 = self.points[box * 4 + vert - 1].astype(int)
+                    line1 = ski.draw.line(self.points[vert_loc][0], self.points[vert_loc][1], p1[0], p1[1])
                     for i in range(len(line1[:][0])):
                         if math.sqrt((self.robot_position[0] - line1[0][i])**2 + (self.robot_position[1] - line1[1][i])):
                             self.robot_map[line1[0][i]][line1[1][i]] = self.map[line1[0][i]][line1[1][i]]
-                    line2 = ski.draw.line(point[0], point[1], p2[0], p2[1])
+                    line2 = ski.draw.line(self.points[vert_loc][0], self.points[vert_loc][1], p2[0], p2[1])
                     for i in range(len(line2[:][0])):
                         if math.sqrt((self.robot_position[0] - line2[0][i])**2 + (self.robot_position[1] - line2[1][i])):
                             self.robot_map[line2[0][i]][line2[1][i]] = self.map[line2[0][i]][line2[1][i]]
 
-                # for pos in self.cell_map:
-                #         x = pos[0] + self.robot_position[0]
-                #         y = pos[1] + self.robot_position[1]
-                #         if 0 <= x < self.definition[0] and 0 <= y < self.definition[1]:
-                #             self.robot_map[x][y] = self.map[x][y]
+                for i in range(len(self.humans)):  # These dudes move every time step so you have to update the global map
+                    if self.human_positions[i] != self.world_to_map(self.humans[i].position):
+                        for pos in self.human_size_map:
+                            x = pos[0] + self.human_positions[i][0]
+                            y = pos[1] + self.human_positions[i][1]
+                            if 0 <= x < self.definition[0] and 0 <= y < self.definition[1] and math.sqrt((self.robot_position[0] - x)**2 + (self.robot_position[1] - y)):
+                                self.robot_map[x][y] = 0
+
+                        self.human_positions[i] = self.world_to_map(self.humans[i].position)
+                        for pos in self.human_size_map:
+                            x = pos[0] + self.human_positions[i][0]
+                            y = pos[1] + self.human_positions[i][1]
+                            if 0 <= x < self.definition[0] and 0 <= y < self.definition[1]:
+                                self.robot_map[x][y] = 1
+
+
+                if self.cell_map_update%10 == 0:
+                    # print("Removing local objecct drift")
+                    for pos in self.cell_map:
+                            x = pos[0] + self.robot_position[0]
+                            y = pos[1] + self.robot_position[1]
+                            if 0 <= x < self.definition[0] and 0 <= y < self.definition[1]:
+                                self.robot_map[x][y] = self.map[x][y]
+
+                self.cell_map_update = self.cell_map_update + 1
 
 
     def update_global_map(self):
