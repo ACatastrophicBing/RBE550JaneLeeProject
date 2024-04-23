@@ -27,7 +27,7 @@ class Map:
         self.humans = humans         # How many random movement agents we have in the environment
         self.human_size = human_radius
         self.definition = definition # How detailed of a map we want
-        self.definition_conversion = [definition[0]/wrld_size[0], definition[1]/wrld_size[1]]
+        self.definition_conversion = [(definition[0]-1)/wrld_size[0], (definition[1]-1)/wrld_size[1]]
         self.lidar_range = int(lidar_range * self.definition_conversion[0])
         self.wrld_size = wrld_size
         self.boxes = [box.body for box in boxes]
@@ -93,7 +93,7 @@ class Map:
             self.robot_map = np.copy(self.map)
             self.global_map_init = False
 
-        if int(tick * 1000) - self.last_map_update > self.map_update_rate and self.robot_flag and not self.use_global_knowledge:
+        if int(tick * 1000) - self.last_map_update > self.map_update_rate and self.robot_flag and not self.use_global_knowledge and not self.global_map_init:
             self.robot_flag = False
             if self.use_global_knowledge:
                 self.robot_map = self.map
