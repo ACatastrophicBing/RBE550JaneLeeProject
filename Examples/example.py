@@ -21,7 +21,7 @@ import networkx as nx
 class Map:
     def __init__(self, env, robot, boxes, humans=[],definition=[100,100], wrld_size=[24,24], lidar_range=5.0,
                  map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0, human_radius = 0.5,
-                 use_global_knowledge = False):
+                 use_global_knowledge = False, max_obj_size=12):
         self.env = env               # The environment we are in
         self.robot = robot           # How many actors we have in the environment that are mapping
         self.humans = humans         # How many random movement agents we have in the environment
@@ -30,6 +30,7 @@ class Map:
         self.definition_conversion = [(definition[0]-1)/wrld_size[0], (definition[1]-1)/wrld_size[1]]
         self.lidar_range = int(lidar_range * self.definition_conversion[0])
         self.wrld_size = wrld_size
+        self.lidar_range_mod = max_obj_size / 2 * self.definition_conversion[0]
         self.boxes = [box.body for box in boxes]
         self.cell_map = []
         self.human_size_map = []
@@ -44,14 +45,14 @@ class Map:
         self.cell_map_update = 0
         self.map_update_rate = map_update_rate # How often we check the map to update things, map will also update if robot moves
 
-        self.box_angles = []
-        self.box_positions = []
-        self.box_vertices = []
+        self.box_angles = np.empty([len(self.boxes)], dtype=float)
+        self.box_positions = np.empty([len(self.boxes),2], dtype=int)
+        self.box_vertices = np.empty([len(self.boxes),4,2], dtype=float)
         self.points = np.zeros([len(self.boxes) * 4, 2], dtype=int)
-        for box in self.boxes:
-            self.box_angles.append(box.angle)
-            self.box_positions.append(self.world_to_map(box.position))
-            self.box_vertices.append(box.fixtures[0].shape.vertices)
+        for box in range(len(self.boxes)):
+        #     self.box_angles.append(box.angle)
+        #     self.box_positions.append(self.world_to_map(box.position))
+            self.box_vertices[box] = np.asarray(self.boxes[box].fixtures[0].shape.vertices)
 
         self.human_positions = []
         for human in self.humans:
@@ -61,7 +62,7 @@ class Map:
 
         self.frontier_map = np.full(self.map.shape, 1, dtype=bool) # Is this efficient? No, but this'll be needed later
 
-        self.update_global_map()
+        self.brute_force_init()
 
         if global_map_init:
             print("[MAP] Initializing Map Knowing Global Snapshot")
@@ -74,12 +75,25 @@ class Map:
 
         self.robot_cspace = np.zeros(self.map.shape, dtype=bool)
 
+    def brute_force_init(self):
+        for i in range(len(self.boxes)):
+            verts = len(self.box_vertices[i])
+            self.box_angles[i] = self.boxes[i].angle
+            self.box_positions[i] = self.world_to_map(self.boxes[i].position)
+            for vert in range(verts):
+                self.generate_obstacle_lines(self.box_positions[i],
+                                             self.world_to_map(self.rotate(self.box_vertices[i][vert % verts],
+                                                                           self.box_angles[i])),
+                                             self.world_to_map(self.rotate(self.box_vertices[i][(vert + 1) % verts],
+                                                                           self.box_angles[i])))
+
     def update(self, tick):
         # for robot in self.robots:
         #     continue
         self.map_flag = False
 
         if int(tick * 1000) - self.last_map_update > self.map_update_rate and self.use_global_knowledge:
+            # print("Updating Global Map")
             self.update_global_map()
             self.last_map_update = tick
             self.map_flag = True
@@ -90,6 +104,7 @@ class Map:
             self.robot_position = perceived_position
 
         if self.global_map_init and tick > 1:
+            print("Initializing the Robot map based on global current belief")
             self.robot_map = np.copy(self.map)
             self.global_map_init = False
 
@@ -104,7 +119,7 @@ class Map:
                          + np.asarray(self.world_to_map(self.rotate(self.box_vertices[i][vert], self.box_angles[i]))))
 
                 kdtree = spatial.KDTree(self.points)
-                near_index = kdtree.query_ball_point(self.robot_position, r=self.lidar_range)
+                near_index = kdtree.query_ball_point(self.robot_position, r=self.lidar_range + self.lidar_range_mod)
                 near = [self.points[p] for p in near_index]
                 for point in near:
                     # print("Adding ", point, " to the map")
@@ -154,15 +169,18 @@ class Map:
     def update_global_map(self):
         for i in range(len(self.boxes)):
             if (self.box_angles[i] != self.boxes[i].angle or
-                    self.box_positions[i] != self.world_to_map(self.boxes[i].position)):
+                    not np.array_equal(self.box_positions[i], self.world_to_map(self.boxes[i].position))):
                 verts = len(self.box_vertices[i])
                 for vert in range(verts):
                     self.remove_obstacle_lines(self.box_positions[i],
-                                self.world_to_map(self.rotate(self.box_vertices[i][vert%verts], self.box_angles[i])),
+                                self.world_to_map(self.rotate(self.box_vertices[i][vert%verts][:], self.box_angles[i])),
                                 self.world_to_map(self.rotate(self.box_vertices[i][(vert+1)%verts], self.box_angles[i])))
                 self.box_angles[i] = self.boxes[i].angle
                 self.box_positions[i] = self.world_to_map(self.boxes[i].position)
                 for vert in range(verts):
+                    # print("Adding a line for box ", self.box_positions[i], " from ",
+                    #       self.world_to_map(self.rotate(self.box_vertices[i][vert % verts],self.box_angles[i])), " to ",
+                    #       self.world_to_map(self.rotate(self.box_vertices[i][(vert + 1) % verts],self.box_angles[i])))
                     self.generate_obstacle_lines(self.box_positions[i],
                                 self.world_to_map(self.rotate(self.box_vertices[i][vert % verts],self.box_angles[i])),
                                 self.world_to_map(self.rotate(self.box_vertices[i][(vert + 1) % verts],self.box_angles[i])))
@@ -443,7 +461,7 @@ if __name__ == "__main__":
     num_robots = 1
     num_humans = 2
     num_obstacles = 20
-    sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=False, use_global_knowledge=True)
+    sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=True, use_global_knowledge=False)
     map = sim.map
     run_sim(env, act, figure_width=6, total_time=10, dt_display=10)
     map.path_plan("PRM")
