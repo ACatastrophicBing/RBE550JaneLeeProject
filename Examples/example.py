@@ -14,10 +14,12 @@ from PRM import PRM
 import math
 import skimage as ski
 from skimage.morphology import isotropic_dilation
+from scipy import spatial
+import networkx as nx
 
 
 class Map:
-    def __init__(self, env, robot, boxes, humans=[],definition=[100,100], lidar_range=10.0,wrld_size=[24,24],
+    def __init__(self, env, robot, boxes, humans=[],definition=[100,100], wrld_size=[24,24], lidar_range=5.0,
                  map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0, human_radius = 0.5,
                  use_global_knowledge = False):
         self.env = env               # The environment we are in
@@ -26,7 +28,7 @@ class Map:
         self.human_size = human_radius
         self.definition = definition # How detailed of a map we want
         self.definition_conversion = [definition[0]/wrld_size[0], definition[1]/wrld_size[1]]
-        self.lidar_range = lidar_range * int(self.definition_conversion[0])
+        self.lidar_range = int(lidar_range * self.definition_conversion[0])
         self.wrld_size = wrld_size
         self.boxes = [box.body for box in boxes]
         self.cell_map = []
@@ -39,11 +41,13 @@ class Map:
         self.create_cell_maps()
         self.robot_flag = False # If the robot updates its position in world, flag this
         self.map_flag = False   # If the map has any changes compared to what it previously was, flag this
+        self.cell_map_update = 0
         self.map_update_rate = map_update_rate # How often we check the map to update things, map will also update if robot moves
 
         self.box_angles = []
         self.box_positions = []
         self.box_vertices = []
+        self.points = np.zeros([len(self.boxes) * 4, 2])
         for box in self.boxes:
             self.box_angles.append(box.angle)
             self.box_positions.append(self.world_to_map(box.position))
@@ -58,9 +62,12 @@ class Map:
         self.frontier_map = np.full(self.map.shape, 1, dtype=bool) # Is this efficient? No, but this'll be needed later
 
         self.update_global_map()
+
         if global_map_init:
-            self.robot_map = self.map.copy()
+            print("[MAP] Initializing Map Knowing Global Snapshot")
+            # This cannot actually be done here since the environment hasn't been generated yet, so it is instead handled in the update function ONCE
         else:
+            print("[MAP] Initializing Map NOT Knowing Global Snapshot")
             self.robot_map = np.full(self.map.shape, 1, dtype=bool)
 
         self.last_map_update = 0
@@ -70,26 +77,56 @@ class Map:
     def update(self, tick):
         # for robot in self.robots:
         #     continue
+        self.map_flag = False
 
         if int(tick * 1000) - self.last_map_update > self.map_update_rate:
             self.update_global_map()
             self.last_map_update = tick
+            self.map_flag = True
 
         perceived_position = self.world_to_map(self.robot['center'].position)
         if perceived_position != self.robot_position:
             self.robot_flag = True
             self.robot_position = perceived_position
-        else:
+
+        if self.global_map_init and tick > 1:
+            self.robot_map = np.copy(self.map)
+            self.global_map_init = False
+
+        if int(tick * 1000) - self.last_map_update > self.map_update_rate and self.robot_flag and not self.use_global_knowledge:
             self.robot_flag = False
-        if tick % self.map_update_rate == 0 or self.robot_flag:
             if self.use_global_knowledge:
                 self.robot_map = self.map
             else:
-                for pos in self.cell_map:
-                    x = pos[0] + self.robot_position[0]
-                    y = pos[1] + self.robot_position[1]
-                    if 0 <= x < self.definition[0] and 0 <= y < self.definition[1]:
-                        self.robot_map[x][y] = self.map[x][y]
+                for i in range(len(self.boxes)):
+                    for vert in range(len(self.box_vertices[i])):
+                        self.points[i * 4 + vert] = (np.asarray(self.box_positions[i])
+                         + np.asarray(self.world_to_map(self.rotate(self.box_vertices[i][vert], self.box_angles[i]))))
+
+                kdtree = spatial.KDTree(self.points)
+                near = kdtree.query_ball_point(self.robot_position, r=self.lidar_range)
+                for point in near:
+                    vert_loc = np.where(self.points == point)
+                    box, vert = int(math.floor(vert_loc[0][0] / len(self.boxes))), vert_loc[0][0] % len(self.boxes)
+                    p1 = self.points[box * 4 + (vert + 1)%4]
+                    if vert == 0:
+                        p2 = self.points[box * 4 + 3]
+                    else:
+                        p2 = self.points[box * 4 + vert - 1]
+                    line1 = ski.draw.line(point[0], point[1], p1[0], p1[1])
+                    for i in range(len(line1[:][0])):
+                        if math.sqrt((self.robot_position[0] - line1[0][i])**2 + (self.robot_position[1] - line1[1][i])):
+                            self.robot_map[line1[0][i]][line1[1][i]] = self.map[line1[0][i]][line1[1][i]]
+                    line2 = ski.draw.line(point[0], point[1], p2[0], p2[1])
+                    for i in range(len(line2[:][0])):
+                        if math.sqrt((self.robot_position[0] - line2[0][i])**2 + (self.robot_position[1] - line2[1][i])):
+                            self.robot_map[line2[0][i]][line2[1][i]] = self.map[line2[0][i]][line2[1][i]]
+
+                # for pos in self.cell_map:
+                #         x = pos[0] + self.robot_position[0]
+                #         y = pos[1] + self.robot_position[1]
+                #         if 0 <= x < self.definition[0] and 0 <= y < self.definition[1]:
+                #             self.robot_map[x][y] = self.map[x][y]
 
 
     def update_global_map(self):
@@ -157,13 +194,21 @@ class Map:
 
 
     def path_plan(self, algorithm):
-        self.robot_cspace = isotropic_dilation(self.robot_map,radius=int(self.c_space_dilation * self.definition_conversion[0]))
+        if self.use_global_knowledge:
+            self.robot_cspace = isotropic_dilation(self.map,
+                                                   radius=int(self.c_space_dilation * self.definition_conversion[0]))
+        else:
+            self.robot_cspace = isotropic_dilation(self.robot_map,
+                                                   radius=int(self.c_space_dilation * self.definition_conversion[0]))
         # self.robot_cspace = self.robot_map
+        path = None
         if algorithm == "PRM":
             self.PRM = PRM(self.robot_cspace)
             self.PRM.sample(n_pts=500, sampling_method="random")
             self.PRM.search(self.robot_position, self.world_to_map([20, 10]))
             self.PRM.draw_map()
+        if algorithm == "AD*" and self.robot_flag:
+            return path
 
     def create_cell_maps(self):
         """
@@ -193,17 +238,20 @@ class Map:
 
 
 class Simulator:
-    def __init__(self, env, num_robots, rand_obstacles=0, map_selector=None,wrld_size=[24,24], num_humans=0):
+    def __init__(self, env, rand_obstacles=0, map_selector=None,wrld_size=[24,24], num_humans=0,
+                 lidar_range=5.0, map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0,
+                 human_radius = 0.5, use_global_knowledge = False, definition = [1000,1000], human_friction=0.7):
         self.env = env
         self.robots = []
         self.obstacles = []
         self.humans = []
         for i in range(num_humans):
             self.humans.append(Disk(self.env, x=Simulator.randbetween(8, 22), y=Simulator.randbetween(8, 22),
-                    radius=0.5, angle=Simulator.randbetween(0, 360), color='red'))
+                    radius=0.5, angle=Simulator.randbetween(0, 360), color='red', linearDamping=human_friction))
 
         if map_selector is not None:
             # TODO : Create maps to allow robots to properly explore environment
+
             placeholder = 0
         else:
             for i in range(rand_obstacles):
@@ -216,7 +264,10 @@ class Simulator:
         # print(type(self.robots))
         # print(dir(self.robots))
 
-        self.map = Map(env, self.robots, boxes=self.obstacles, definition=[1000,1000], lidar_range=5,wrld_size=wrld_size,humans=self.humans)
+        self.map = Map(env, self.robots, boxes=self.obstacles, definition=definition, lidar_range=lidar_range,
+                       wrld_size=wrld_size,humans=self.humans, map_update_rate=map_update_rate,
+                       global_map_init=global_map_init, c_space_dilation=c_space_dilation, human_radius=human_radius,
+                       use_global_knowledge=use_global_knowledge)
 
     def build(self, robot):
         # TODO : Generate random positions of robots that don't overlap with other robots
@@ -259,19 +310,15 @@ def act(t, robot):
     # Direction and distance
     dx = target_x - robot['center'].x
     dy = target_y - robot['center'].y
-    # print("Robot X", robot['center'].x)
-    # print("Robot Y", robot['center'].x)
 
     distance_to_target = np.sqrt(dx**2 + dy**2)
     angle_to_target = np.degrees(np.arctan2(dy, dx))
 
     # Robot's current orientation
     robot_angle = robot['center'].angle % 360
-    # print("Robot Angle",robot_angle)
 
     # Calculate the shortest angle to the target
     angle_diff = (angle_to_target - robot_angle + 180) % 360 - 180
-    # print("Robot Angle Difference",angle_diff)
 
     # Adjust speed
     speed = min(base_speed, Kp_distance * distance_to_target)
@@ -283,20 +330,14 @@ def act(t, robot):
             # print("Robot turning")
             robot['left'].F = -turn_direction * turn_speed
             robot['right'].F = turn_direction * turn_speed
-            # print("speed left",-turn_direction * turn_speed)
-            # print("speed right",turn_direction * turn_speed)
 
 
         else:  # Move forward
-            # print("Robot going straight")
-            # print("speed",speed)
             robot['left'].F = speed
             robot['right'].F = speed
 
     # Stop when you are close by
     if distance_to_target < 3:
-        # print("Robot at the target")
-        # print("speed",speed)
         robot['left'].F = 0
         robot['right'].F = 0
 
@@ -309,18 +350,7 @@ def act(t, robot):
             human.F = 0
             human.τ = 0.01
         else:
-            human.F = 0.1
-
-
-    map.update(t)
-
-    for human in sim.humans:
-        if human.read_distance() < 2:
-            # Turn
-            human.F = 0
-            human.τ = 0.01
-        else:
-            human.F = 0.1
+            human.F = 0.3
 
 
 def robot_controller( robot):
@@ -332,7 +362,7 @@ if __name__ == "__main__":
     num_robots = 1
     num_humans = 2
     num_obstacles = 20
-    sim = Simulator(env, 1, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans)
+    sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans)
     map = sim.map
     run_sim(env, act, figure_width=6, total_time=10, dt_display=10)
     map.path_plan("PRM")

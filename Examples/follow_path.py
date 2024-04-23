@@ -24,7 +24,7 @@ class Map:
         self.wrld_size = wrld_size
         self.map = np.full((definition[0], definition[1]),1)
         self.boxes = [box.body for box in boxes]
-        self.PRM = PRM(self.map)
+        self.PRM = PRM(1-self.map)
 
     def update(self):
         # for robot in self.robots:
