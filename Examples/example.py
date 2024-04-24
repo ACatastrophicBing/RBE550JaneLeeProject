@@ -58,6 +58,8 @@ class Map:
         for human in self.humans:
             self.human_positions.append(self.world_to_map(human.position))
 
+        self.robot_map = np.full((definition[0], definition[1]), 1, dtype=bool)
+
         self.map = np.zeros((definition[0], definition[1]), dtype=bool) # 0 is empty 1 is blocked
 
         self.frontier_map = np.full(self.map.shape, 1, dtype=bool) # Is this efficient? No, but this'll be needed later
@@ -132,11 +134,11 @@ class Map:
                         p2 = self.points[box * 4 + vert - 1].astype(int)
                     line1 = ski.draw.line(self.points[vert_loc][0], self.points[vert_loc][1], p1[0], p1[1])
                     for i in range(len(line1[:][0])):
-                        if math.sqrt((self.robot_position[0] - line1[0][i])**2 + (self.robot_position[1] - line1[1][i])):
+                        if math.sqrt(max(0,(self.robot_position[0] - line1[0][i])**2 + (self.robot_position[1] - line1[1][i]))):
                             self.robot_map[line1[0][i]][line1[1][i]] = self.map[line1[0][i]][line1[1][i]]
                     line2 = ski.draw.line(self.points[vert_loc][0], self.points[vert_loc][1], p2[0], p2[1])
                     for i in range(len(line2[:][0])):
-                        if math.sqrt((self.robot_position[0] - line2[0][i])**2 + (self.robot_position[1] - line2[1][i])):
+                        if math.sqrt(max(0,(self.robot_position[0] - line2[0][i])**2 + (self.robot_position[1] - line2[1][i]))):
                             self.robot_map[line2[0][i]][line2[1][i]] = self.map[line2[0][i]][line2[1][i]]
 
                 for i in range(len(self.humans)):  # These dudes move every time step so you have to update the global map
@@ -144,7 +146,7 @@ class Map:
                         for pos in self.human_size_map:
                             x = pos[0] + self.human_positions[i][0]
                             y = pos[1] + self.human_positions[i][1]
-                            if 0 <= x < self.definition[0] and 0 <= y < self.definition[1] and math.sqrt((self.robot_position[0] - x)**2 + (self.robot_position[1] - y)):
+                            if 0 <= x < self.definition[0] and 0 <= y < self.definition[1] and math.sqrt(max(0,(self.robot_position[0] - x)**2 + (self.robot_position[1] - y))):
                                 self.robot_map[x][y] = 0
 
                         self.human_positions[i] = self.world_to_map(self.humans[i].position)
@@ -232,6 +234,9 @@ class Map:
         for i in range(len(line[:][0])):
             self.map[line[0][i]][line[1][i]] = 0
 
+    def map_to_world(self, p1):
+        return (p1[0] / self.definition[0] * self.wrld_size[0],
+                p1[1] / self.definition[1] * self.wrld_size[1])
 
     def path_plan(self, algorithm):
         if self.use_global_knowledge:
@@ -242,11 +247,27 @@ class Map:
                                                    radius=int(self.c_space_dilation * self.definition_conversion[0]))
         # self.robot_cspace = self.robot_map
         path = None
+
         if algorithm == "PRM":
-            self.PRM = PRM(self.robot_cspace)
-            self.PRM.sample(n_pts=500, sampling_method="random")
-            self.PRM.search(self.robot_position, self.world_to_map([20, 10]))
-            self.PRM.draw_map()
+            self.PRM = PRM(self.map)
+            self.PRM.sample(n_pts=200, sampling_method="random")
+            if len(self.PRM.samples) == 0:
+                print("No samples generated.")
+                return None
+            # Start and goal for the search
+            start = self.robot_position
+            goal = self.world_to_map([3, 3])  # Example goal
+
+            self.PRM.search(start, goal)
+            if self.PRM.path:
+                    waypoints = [self.map_to_world(idx) for idx in self.PRM.path if isinstance(idx, int)]
+                    print('waypoint',waypoints)
+                    return waypoints
+            else:
+                    print("No path found")
+                    return None
+
+
         if algorithm == "AD*" and self.robot_flag:
             return path
 
@@ -388,58 +409,92 @@ class Simulator:
     def randbetween(low, high):
         return np.random.rand() * (high - low) + low
 
+class TrajectoryController:
+    def __init__(self, waypoints):
+        self.waypoints = waypoints
+        self.current_waypoint_index = 0
+        self.reached_destination = False
+
+    def update_target(self, robot):
+        if self.reached_destination:
+            return None, None  # done
+
+        target_x, target_y = self.waypoints[self.current_waypoint_index]
+        dx = target_x - robot['center'].x
+        dy = target_y - robot['center'].y
+        distance = np.sqrt(dx**2 + dy**2)
+
+        if distance < 2:  # update to next waypoint
+            self.current_waypoint_index += 1
+            if self.current_waypoint_index >= len(self.waypoints):
+                self.reached_destination = True
+                return None, None
+            else:
+                target_x, target_y = self.waypoints[self.current_waypoint_index]
+
+        return target_x, target_y
 
 
-sim = None
-map = None
-robot_map = None
 
-def act(t, robot):
-    #EVERYTHING IS IN DEGREES
-    target_x = 15
-    target_y = 15
-    base_speed = 0.6
-    base_turn_speed = 0.2
-    angle_tolerance = 5
-    Kp_distance = 0.02
-    Kp_angle = 0.05
-    robot_to_target = 2  # Distance threshold to be considered "close" to the target
+def act(t, robot, controller):
+    target = controller.update_target(robot)
+    if target == (None, None):
+        print("Robot has reached the final destination")
+        robot['left'].F = 0
+        robot['right'].F = 0
+        return  #
 
+    target_x, target_y = target
+    print(f"Target Coordinates: {target_x}, {target_y}")
+
+    base_speed = 0.6  
+    base_turn_speed = 0.2  
+    angle_tolerance = 5  
+    Kp_distance = 0.02 
+    Kp_angle = 0.05  
+    robot_to_target = 1  #do not make it too close not tuned well 
 
     # Direction and distance
+    print("target",target)
     dx = target_x - robot['center'].x
     dy = target_y - robot['center'].y
+    print("Robot X", robot['center'].x)  
+    print("Robot Y", robot['center'].y)  
 
     distance_to_target = np.sqrt(dx**2 + dy**2)
     angle_to_target = np.degrees(np.arctan2(dy, dx))
-
+    
     # Robot's current orientation
     robot_angle = robot['center'].angle % 360
+    print("Robot Angle", robot_angle)  
 
     # Calculate the shortest angle to the target
     angle_diff = (angle_to_target - robot_angle + 180) % 360 - 180
+    print("Robot Angle Difference", angle_diff)  
 
     # Adjust speed
     speed = min(base_speed, Kp_distance * distance_to_target)
     if distance_to_target > robot_to_target:
         turn_speed = min(base_turn_speed, Kp_angle * abs(angle_diff))
-
         if abs(angle_diff) > angle_tolerance:  # Need to turn
             turn_direction = np.sign(angle_diff)
-            # print("Robot turning")
+            print("Robot turning") 
             robot['left'].F = -turn_direction * turn_speed
             robot['right'].F = turn_direction * turn_speed
-
-
+            print("speed left", -turn_direction * turn_speed) 
+            print("speed right", turn_direction * turn_speed) 
         else:  # Move forward
+            print("Robot going straight")  
+            print("speed", speed)  
             robot['left'].F = speed
             robot['right'].F = speed
 
-    # Stop when you are close by
-    if distance_to_target < 3:
+    # Stop when close to target
+    if distance_to_target < 2: 
+        print("Robot at the target")  
+        print("speed", speed)  
         robot['left'].F = 0
         robot['right'].F = 0
-
 
     map.update(t)
 
@@ -463,7 +518,12 @@ if __name__ == "__main__":
     num_obstacles = 20
     sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=True, use_global_knowledge=False)
     map = sim.map
-    run_sim(env, act, figure_width=6, total_time=10, dt_display=10)
-    map.path_plan("PRM")
+    #waypoints = map.path_plan("PRM")
+    waypoints = [(3, 2), (10, 2), (15, 15), (20, 20)]
 
+    if waypoints:
+        controller = TrajectoryController(waypoints)
+        run_sim(env, lambda t, robot: act(t, robot, controller), total_time=300, dt_display=10)
+    else:
+        print("No valid waypoints generated, simulation will not start.", waypoints)
 # NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))
