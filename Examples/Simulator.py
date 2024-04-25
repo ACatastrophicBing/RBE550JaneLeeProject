@@ -17,7 +17,7 @@ import networkx as nx
 class Map:
     def __init__(self, env, robot, boxes, humans=[],definition=[100,100], wrld_size=[50,50], lidar_range=5.0,
                  map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0, human_radius = 0.5,
-                 use_global_knowledge = False, max_obj_size=12):
+                 use_global_knowledge = False, max_obj_size=12, visualize = False):
         self.env = env               # The environment we are in
         self.robot = robot           # How many actors we have in the environment that are mapping
         self.humans = humans         # How many random movement agents we have in the environment
@@ -45,6 +45,7 @@ class Map:
         self.box_positions = np.empty([len(self.boxes),2], dtype=int)
         self.box_vertices = np.empty([len(self.boxes),4,2], dtype=float)
         self.points = np.zeros([len(self.boxes) * 4, 2], dtype=int)
+        self.visualize = visualize
         for box in range(len(self.boxes)):
             if self.boxes[box].fixtures[0].shape.type == 2:
                 self.box_vertices[box] = np.asarray(self.boxes[box].fixtures[0].shape.vertices)
@@ -85,7 +86,7 @@ class Map:
                                                  self.world_to_map(self.rotate(self.box_vertices[i][(vert + 1) % verts],
                                                                                self.box_angles[i])))
             if self.boxes[i].fixtures[0].shape.type == 0:
-                print(self.box_positions[i])
+                # print(self.box_positions[i])
                 self.generate_circle_radius(self.box_positions[i], self.box_vertices[i][0][0], True)
 
 
@@ -253,24 +254,6 @@ class Map:
             self.map[math.ceil(math.cos(2 * math.pi / n * (i + 1)) * radius) + position[0], math.ceil(math.sin(2 * math.pi / n * (i + 1)) * radius) + position[1]] = add_to_map
 
 
-
-    def path_plan(self, algorithm):
-        if self.use_global_knowledge:
-            self.robot_cspace = isotropic_dilation(self.map,
-                                                   radius=int(self.c_space_dilation * self.definition_conversion[0]))
-        else:
-            self.robot_cspace = isotropic_dilation(self.robot_map,
-                                                   radius=int(self.c_space_dilation * self.definition_conversion[0]))
-        # self.robot_cspace = self.robot_map
-        path = None
-        if algorithm == "PRM":
-            self.PRM = PRM(self.robot_cspace)
-            self.PRM.sample(n_pts=500, sampling_method="random")
-            self.PRM.search(self.robot_position, self.world_to_map([20, 10]))
-            self.PRM.draw_map()
-        if algorithm == "AD*" and self.robot_flag:
-            return path
-
     def create_cell_maps(self):
         """
         Creates a cell map that stores all the cells within a given radius around 0,0 to update our map.
@@ -298,10 +281,38 @@ class Map:
                     self.human_size_map.append([x, y])
 
 
+    def path_plan(self, algorithm):
+        '''
+        Takes in a string denoting what algorithm the robot is running.
+
+        return : A path that is either a np array or a list of positions to go to, the return is in World coordinates,
+        not map coordinates.
+        '''
+        if self.use_global_knowledge:
+            self.robot_cspace = isotropic_dilation(self.map,
+                                                   radius=int(self.c_space_dilation * self.definition_conversion[0]))
+        else:
+            self.robot_cspace = isotropic_dilation(self.robot_map,
+                                                   radius=int(self.c_space_dilation * self.definition_conversion[0]))
+        # TODO : The below code is still needed to be done
+        path = None
+        if algorithm == "PRM":
+            self.PRM = PRM(self.robot_cspace) # NOTE : You don't need to use self.Whatever,
+            # I'm just using it because it was useful to do when debugging all the other code.
+            self.PRM.sample(n_pts=500, sampling_method="random")
+            self.PRM.search(self.robot_position, self.world_to_map([20, 10]))
+            path = self.PRM.path
+            if self.visualize:
+                self.PRM.draw_map()
+        if algorithm == "AD*" and self.robot_flag:
+            path = None
+        return path
+
+
 class Simulator:
     def __init__(self, env, rand_obstacles=0, map_selector=None,wrld_size=[50,50], num_humans=0,
                  lidar_range=5.0, map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0,
-                 human_radius = 0.5, use_global_knowledge = False, definition = [1000,1000], human_friction=0.7):
+                 human_radius = 0.5, use_global_knowledge = False, definition = [1000,1000], human_friction=0.7, visualize=False):
         self.env = env
         self.robots = []
         self.obstacles = []
@@ -383,7 +394,7 @@ class Simulator:
         self.map = Map(env, self.robots, boxes=self.obstacles, definition=definition, lidar_range=lidar_range,
                        wrld_size=wrld_size,humans=self.humans, map_update_rate=map_update_rate,
                        global_map_init=global_map_init, c_space_dilation=c_space_dilation, human_radius=human_radius,
-                       use_global_knowledge=use_global_knowledge)
+                       use_global_knowledge=use_global_knowledge, visualize=visualize)
 
     def build(self, robot):
         # TODO : Generate random positions of robots that don't overlap with other robots

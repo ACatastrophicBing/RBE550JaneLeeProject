@@ -9,14 +9,31 @@ path = os.getcwd()
 sys.path.insert(1,path)
 print(path)
 from RobotSim373 import *
-
-
+import argparse
 
 sim = None
 map = None
 robot_map = None
+path_planner = None
+update_when_robot_moves = None
+update_when_map_updates = None
+visualize = None
 
 def act(t, robot):
+
+    # TODO : Whenever you are trying to run a specific algorithm, follow a similar format to this :
+    # NOTE: THIS IS NOT USING TRAJECTORY PLANNER AND IS NOT IN ANY WAY FINISHED;
+    # YOU NEED TO MODIFY THE FOLLOWING CODE TO WORK WITH WHAT ALGORITHM YOU WANT TO RUN PROPERLY
+    # IF YOU ARE ONLY RUNNING THE PATH PLANNER ON STARTUP, CHANGE NONE OF THESE VARIABLES AND @CAN TO GET THE MAP
+    # TO INITIALIZE BEFORE RUNNING ACT
+    if sim.map.robot_flag and update_when_robot_moves and not update_when_map_updates:
+        path = sim.map.path_plan(path_planner)
+    if sim.map.map_flag and update_when_map_updates and not update_when_robot_moves:
+        path = sim.map.path_plan(path_planner)
+    if sim.map.map_flag and update_when_map_updates and update_when_robot_moves:
+        path = sim.map.path_plan(path_planner)
+
+
     #EVERYTHING IS IN DEGREES
     target_x = 15
     target_y = 15
@@ -73,17 +90,27 @@ def act(t, robot):
         else:
             human.F = 0.3
 
-
-def robot_controller( robot):
-    return [0,0]
-
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("recording_path")
+    parser.add_argument("--visualize", default=False)
+    parser.add_argument("--path_planner", default='PRM')
+    parser.add_argument("--update_on_robot_movement", default=False)
+    parser.add_argument("--update_on_map_update", default=False)
+    # parser.add_argument("--any_more_things_you_may_need",default = False)
+
+    args = parser.parse_args()
+    path_planner = args.path_planner
+    update_when_robot_moves = args.update_on_robot_movement
+    update_when_map_updates = args.update_on_map_update
+    visualize = args.visualize
+
     wrld_size = [50,50]
     env = Environment(wrld_size[0], wrld_size[1])
     num_robots = 1
     num_humans = 5
     num_obstacles = 20
-    sim = Simulator(env, rand_obstacles=20, map_selector=0, wrld_size=wrld_size, num_humans=num_humans, global_map_init=True, use_global_knowledge=False)
+    sim = Simulator(env, rand_obstacles=20, map_selector=0, wrld_size=wrld_size, num_humans=num_humans, global_map_init=True, use_global_knowledge=False, visualize=visualize)
     map = sim.map
     run_sim(env, act, figure_width=6, total_time=10, dt_display=10)
     map.path_plan("PRM")
