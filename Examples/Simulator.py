@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# coding: utf-8
-
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -16,7 +13,6 @@ import skimage as ski
 from skimage.morphology import isotropic_dilation
 from scipy import spatial
 import networkx as nx
-
 
 class Map:
     def __init__(self, env, robot, boxes, humans=[],definition=[100,100], wrld_size=[50,50], lidar_range=5.0,
@@ -50,9 +46,10 @@ class Map:
         self.box_vertices = np.empty([len(self.boxes),4,2], dtype=float)
         self.points = np.zeros([len(self.boxes) * 4, 2], dtype=int)
         for box in range(len(self.boxes)):
-        #     self.box_angles.append(box.angle)
-        #     self.box_positions.append(self.world_to_map(box.position))
-            self.box_vertices[box] = np.asarray(self.boxes[box].fixtures[0].shape.vertices)
+            if self.boxes[box].fixtures[0].shape.type == 2:
+                self.box_vertices[box] = np.asarray(self.boxes[box].fixtures[0].shape.vertices)
+            if self.boxes[box].fixtures[0].shape.type == 0:
+                self.box_vertices[box] = self.boxes[box].fixtures[0].shape.radius * self.definition_conversion[0]
 
         self.human_positions = []
         for human in self.humans:
@@ -80,12 +77,17 @@ class Map:
             verts = len(self.box_vertices[i])
             self.box_angles[i] = self.boxes[i].angle
             self.box_positions[i] = self.world_to_map(self.boxes[i].position)
-            for vert in range(verts):
-                self.generate_obstacle_lines(self.box_positions[i],
-                                             self.world_to_map(self.rotate(self.box_vertices[i][vert % verts],
-                                                                           self.box_angles[i])),
-                                             self.world_to_map(self.rotate(self.box_vertices[i][(vert + 1) % verts],
-                                                                           self.box_angles[i])))
+            if self.boxes[i].fixtures[0].shape.type == 2:
+                for vert in range(verts):
+                    self.generate_obstacle_lines(self.box_positions[i],
+                                                 self.world_to_map(self.rotate(self.box_vertices[i][vert % verts],
+                                                                               self.box_angles[i])),
+                                                 self.world_to_map(self.rotate(self.box_vertices[i][(vert + 1) % verts],
+                                                                               self.box_angles[i])))
+            if self.boxes[i].fixtures[0].shape.type == 0:
+                print(self.box_positions[i])
+                self.generate_circle_radius(self.box_positions[i], self.box_vertices[i][0][0], True)
+
 
     def update(self, tick):
         # for robot in self.robots:
@@ -144,7 +146,7 @@ class Map:
                         for pos in self.human_size_map:
                             x = pos[0] + self.human_positions[i][0]
                             y = pos[1] + self.human_positions[i][1]
-                            if 0 <= x < self.definition[0] and 0 <= y < self.definition[1] and math.sqrt((self.robot_position[0] - x)**2 + (self.robot_position[1] - y)):
+                            if 0 <= x < self.definition[0] and 0 <= y < self.definition[1] and math.sqrt((self.robot_position[0] - x)**2 + (self.robot_position[1] - y)**2):
                                 self.robot_map[x][y] = 0
 
                         self.human_positions[i] = self.world_to_map(self.humans[i].position)
@@ -171,19 +173,29 @@ class Map:
             if (self.box_angles[i] != self.boxes[i].angle or
                     not np.array_equal(self.box_positions[i], self.world_to_map(self.boxes[i].position))):
                 verts = len(self.box_vertices[i])
-                for vert in range(verts):
-                    self.remove_obstacle_lines(self.box_positions[i],
-                                self.world_to_map(self.rotate(self.box_vertices[i][vert%verts][:], self.box_angles[i])),
-                                self.world_to_map(self.rotate(self.box_vertices[i][(vert+1)%verts], self.box_angles[i])))
+
+                if self.boxes[i].fixtures[0].shape.type == 2:
+                    for vert in range(verts):
+                        self.remove_obstacle_lines(self.box_positions[i],
+                                    self.world_to_map(self.rotate(self.box_vertices[i][vert%verts][:], self.box_angles[i])),
+                                    self.world_to_map(self.rotate(self.box_vertices[i][(vert+1)%verts], self.box_angles[i])))
+                if self.boxes[i].fixtures[0].shape.type == 0:
+                    self.generate_circle_radius(self.box_positions[i], self.box_vertices[i][0][0], False)
+
                 self.box_angles[i] = self.boxes[i].angle
                 self.box_positions[i] = self.world_to_map(self.boxes[i].position)
-                for vert in range(verts):
-                    # print("Adding a line for box ", self.box_positions[i], " from ",
-                    #       self.world_to_map(self.rotate(self.box_vertices[i][vert % verts],self.box_angles[i])), " to ",
-                    #       self.world_to_map(self.rotate(self.box_vertices[i][(vert + 1) % verts],self.box_angles[i])))
-                    self.generate_obstacle_lines(self.box_positions[i],
-                                self.world_to_map(self.rotate(self.box_vertices[i][vert % verts],self.box_angles[i])),
-                                self.world_to_map(self.rotate(self.box_vertices[i][(vert + 1) % verts],self.box_angles[i])))
+
+                if self.boxes[i].fixtures[0].shape.type == 2:
+                    for vert in range(verts):
+                        # print("Adding a line for box ", self.box_positions[i], " from ",
+                        #       self.world_to_map(self.rotate(self.box_vertices[i][vert % verts],self.box_angles[i])), " to ",
+                        #       self.world_to_map(self.rotate(self.box_vertices[i][(vert + 1) % verts],self.box_angles[i])))
+                        self.generate_obstacle_lines(self.box_positions[i],
+                                    self.world_to_map(self.rotate(self.box_vertices[i][vert % verts],self.box_angles[i])),
+                                    self.world_to_map(self.rotate(self.box_vertices[i][(vert + 1) % verts],self.box_angles[i])))
+
+                if self.boxes[i].fixtures[0].shape.type == 0:
+                    self.generate_circle_radius(self.box_positions[i], self.box_vertices[i][0][0], True)
 
         for i in range(len(self.humans)): # These dudes move every time step so you have to update the global map
             if self.human_positions[i] != self.world_to_map(self.humans[i].position):
@@ -200,16 +212,16 @@ class Map:
                         self.map[x][y] = 1
 
 
-
-
     def world_to_map(self,p1):
         return (math.floor(p1[0] * self.definition_conversion[0]), math.floor(p1[1] * self.definition_conversion[1]))
+
 
     def rotate(self, vect, angle):
         (x, y) = vect
         newx = x * math.cos(angle) - y * math.sin(angle)
         newy = x * math.sin(angle) + y * math.cos(angle)
         return [newx, newy]
+
 
     def flood_fill(self,p):
         x, y = p
@@ -222,6 +234,7 @@ class Map:
             if 0 <= new_x < self.definition[0] and 0 <= new_y < self.definition[1]:
                 self.flood_fill([new_x, new_y])
 
+
     def generate_obstacle_lines(self, position, p1,p2):
         line = ski.draw.line(p1[0] + position[0], p1[1] + position[1], p2[0] + position[0], p2[1] + position[1])
         for i in range(len(line[:][0])):
@@ -231,6 +244,14 @@ class Map:
         line = ski.draw.line(p1[0] + position[0], p1[1] + position[1], p2[0] + position[0], p2[1] + position[1])
         for i in range(len(line[:][0])):
             self.map[line[0][i]][line[1][i]] = 0
+
+    def generate_circle_radius(self, position, radius, add_to_map):
+        n = math.ceil(2 * radius * math.pi) + 1
+        for i in range(n):
+            # print(position)
+            # print(math.ceil(math.cos(2 * math.pi / n * (i + 1)) * radius) + position[0], math.ceil(math.sin(2 * math.pi / n * (i + 1)) * radius) + position[0])
+            self.map[math.ceil(math.cos(2 * math.pi / n * (i + 1)) * radius) + position[0], math.ceil(math.sin(2 * math.pi / n * (i + 1)) * radius) + position[1]] = add_to_map
+
 
 
     def path_plan(self, algorithm):
@@ -319,7 +340,7 @@ class Simulator:
                 self.obstacles.append(Disk(self.env,x=40.5,y=28.5,angle=0,radius=1.5,density=1000,color=obstacle_color))
                 self.obstacles.append(Disk(self.env,x=39.0,y=37.0,angle=0,radius=2.0,density=1000,color=obstacle_color))
                 self.obstacles.append(Disk(self.env,x=43.0,y=34.0,angle=0,radius=2.0,density=1000,color=obstacle_color))
-                self.obstacles.append(Disk(self.env,x=43.0,y=38.0,angle=0,radius=2.0,density=1000,color=obstacle_color))                  
+                self.obstacles.append(Disk(self.env,x=43.0,y=38.0,angle=0,radius=2.0,density=1000,color=obstacle_color))
             if map_selector == 1: # Labyrinth
                 self.obstacles.append(Wall(self.env, x=20.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=28.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
@@ -384,82 +405,3 @@ class Simulator:
     def randbetween(low, high):
         return np.random.rand() * (high - low) + low
 
-
-
-sim = None
-map = None
-robot_map = None
-
-def act(t, robot):
-    #EVERYTHING IS IN DEGREES
-    target_x = 15
-    target_y = 15
-    base_speed = 0.6
-    base_turn_speed = 0.2
-    angle_tolerance = 5
-    Kp_distance = 0.02
-    Kp_angle = 0.05
-    robot_to_target = 2  # Distance threshold to be considered "close" to the target
-
-
-    # Direction and distance
-    dx = target_x - robot['center'].x
-    dy = target_y - robot['center'].y
-
-    distance_to_target = np.sqrt(dx**2 + dy**2)
-    angle_to_target = np.degrees(np.arctan2(dy, dx))
-
-    # Robot's current orientation
-    robot_angle = robot['center'].angle % 360
-
-    # Calculate the shortest angle to the target
-    angle_diff = (angle_to_target - robot_angle + 180) % 360 - 180
-
-    # Adjust speed
-    speed = min(base_speed, Kp_distance * distance_to_target)
-    if distance_to_target > robot_to_target:
-        turn_speed = min(base_turn_speed, Kp_angle * abs(angle_diff))
-
-        if abs(angle_diff) > angle_tolerance:  # Need to turn
-            turn_direction = np.sign(angle_diff)
-            # print("Robot turning")
-            robot['left'].F = -turn_direction * turn_speed
-            robot['right'].F = turn_direction * turn_speed
-
-
-        else:  # Move forward
-            robot['left'].F = speed
-            robot['right'].F = speed
-
-    # Stop when you are close by
-    if distance_to_target < 3:
-        robot['left'].F = 0
-        robot['right'].F = 0
-
-
-    map.update(t)
-
-    for human in sim.humans:
-        if human.read_distance() < 2:
-            # Turn
-            human.F = 0
-            human.τ = 0.01
-        else:
-            human.F = 0.3
-
-
-def robot_controller( robot):
-    return [0,0]
-
-if __name__ == "__main__":
-    wrld_size = [50,50]
-    env = Environment(wrld_size[0], wrld_size[1])
-    num_robots = 1
-    num_humans = 5
-    num_obstacles = 20
-    sim = Simulator(env, rand_obstacles=20, map_selector=1, wrld_size=wrld_size, num_humans=num_humans, global_map_init=True, use_global_knowledge=False)
-    map = sim.map
-    run_sim(env, act, figure_width=6, total_time=10, dt_display=10)
-    map.path_plan("PRM")
-
-# NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))
