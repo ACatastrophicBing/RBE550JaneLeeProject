@@ -19,7 +19,7 @@ import networkx as nx
 
 
 class Map:
-    def __init__(self, env, robot, boxes, humans=[],definition=[100,100], wrld_size=[24,24], lidar_range=5.0,
+    def __init__(self, env, robot, boxes, humans=[],definition=[100,100], wrld_size=[50,50], lidar_range=5.0,
                  map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0, human_radius = 0.5,
                  use_global_knowledge = False, max_obj_size=12):
         self.env = env               # The environment we are in
@@ -351,7 +351,7 @@ class Simulator:
                 self.obstacles.append(Wall(self.env, x=24.5, y=21.5, width=9, height=1, angle=0, color=obstacle_color))
         else:
             for _ in range(rand_obstacles):
-                self.obstacles.append(Box(self.env, x=Simulator.randbetween(8, 22), y=Simulator.randbetween(8, 22), width=Simulator.randbetween(.2, 1.2), height=2, angle=Simulator.randbetween(0, 360), color='purple'))
+                self.obstacles.append(Box(self.env, x=Simulator.randbetween(8, 42), y=Simulator.randbetween(8, 42), width=Simulator.randbetween(.2, 2.5), height=2, angle=Simulator.randbetween(0, 360), color='purple'))
 
         self.robots = Robot(env)
         self.build(self.robots)
@@ -457,7 +457,7 @@ if __name__ == "__main__":
     num_robots = 1
     num_humans = 5
     num_obstacles = 20
-    sim = Simulator(env, rand_obstacles=20, map_selector=0, wrld_size=wrld_size, num_humans=num_humans, global_map_init=True, use_global_knowledge=False)
+    sim = Simulator(env, rand_obstacles=20, map_selector=1, wrld_size=wrld_size, num_humans=num_humans, global_map_init=True, use_global_knowledge=False)
     map = sim.map
     run_sim(env, act, figure_width=6, total_time=10, dt_display=10)
     map.path_plan("PRM")
