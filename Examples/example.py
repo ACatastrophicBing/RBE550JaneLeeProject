@@ -234,14 +234,15 @@ class Map:
         for i in range(len(line[:][0])):
             self.map[line[0][i]][line[1][i]] = 0
 
+    # Not sure if it works 
     def map_to_world(self, p1):
-        return (p1[0] / self.definition[0] * self.wrld_size[0],
-                p1[1] / self.definition[1] * self.wrld_size[1])
+        return (np.asanyarray(p1)) / self.definition_conversion
+
 
     def path_plan(self, algorithm):
         if self.use_global_knowledge:
-            self.robot_cspace = isotropic_dilation(self.map,
-                                                   radius=int(self.c_space_dilation * self.definition_conversion[0]))
+           self.robot_cspace =  np.asanyarray( isotropic_dilation(self.map,radius=int(self.c_space_dilation * self.definition_conversion[0]))
+)   
         else:
             self.robot_cspace = isotropic_dilation(self.robot_map,
                                                    radius=int(self.c_space_dilation * self.definition_conversion[0]))
@@ -249,18 +250,25 @@ class Map:
         path = None
 
         if algorithm == "PRM":
-            self.PRM = PRM(self.map)
-            self.PRM.sample(n_pts=200, sampling_method="random")
+            print(type(self.robot_cspace))
+            print(self.robot_cspace)
+            self.PRM = PRM(self.robot_cspace)
+            self.PRM.sample(n_pts=1400, sampling_method="random")
             if len(self.PRM.samples) == 0:
                 print("No samples generated.")
                 return None
             # Start and goal for the search
             start = self.robot_position
-            goal = self.world_to_map([3, 3])  # Example goal
+            goal = self.world_to_map([40, 10])  # Example goal
 
             self.PRM.search(start, goal)
             if self.PRM.path:
-                    waypoints = [self.map_to_world(idx) for idx in self.PRM.path if isinstance(idx, int)]
+                    print('PRM PATH',self.PRM.path)
+                    # filtered_path = [self.index_to_coordinates(idx) for idx in self.PRM.path if isinstance(idx, int)]
+                    # waypoints = [self.map_to_world(coord) for coord in filtered_path]
+                    path = self.PRM.path  # From your PRM algorithm
+                    waypoints = map.convert_prm_path_to_world(path)
+
                     print('waypoint',waypoints)
                     return waypoints
             else:
@@ -270,6 +278,30 @@ class Map:
 
         if algorithm == "AD*" and self.robot_flag:
             return path
+        
+    def convert_prm_path_to_world(self, path):
+        # Clean up the start and end 
+        path = [x for x in path if isinstance(x, int)]
+        print("Filtered path: ", path)
+
+
+        map_coordinates = [self.to_coordinates(id) for id in path]
+        print("Map Coordinates: ", map_coordinates)
+
+        world_coordinates = [self.map_to_world(coord) for coord in map_coordinates]
+        print("World Coordinates: ", world_coordinates)
+
+        return world_coordinates
+
+    def to_coordinates(self, index):
+        columns = 50 
+        x = index % columns
+        y = index // columns  
+        return (x, y)
+
+
+
+
 
     def create_cell_maps(self):
         """
@@ -424,7 +456,7 @@ class TrajectoryController:
         dy = target_y - robot['center'].y
         distance = np.sqrt(dx**2 + dy**2)
 
-        if distance < 2:  # update to next waypoint
+        if distance < 3:  # update to next waypoint
             self.current_waypoint_index += 1
             if self.current_waypoint_index >= len(self.waypoints):
                 self.reached_destination = True
@@ -490,7 +522,7 @@ def act(t, robot, controller):
             robot['right'].F = speed
 
     # Stop when close to target
-    if distance_to_target < 2: 
+    if distance_to_target < 3: 
         print("Robot at the target")  
         print("speed", speed)  
         robot['left'].F = 0
@@ -516,10 +548,10 @@ if __name__ == "__main__":
     num_robots = 1
     num_humans = 2
     num_obstacles = 20
-    sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=True, use_global_knowledge=False)
+    sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=True, use_global_knowledge=True)
     map = sim.map
-    #waypoints = map.path_plan("PRM")
-    waypoints = [(3, 2), (10, 2), (15, 15), (20, 20)]
+    waypoints = map.path_plan("PRM")
+    # waypoints = [(3, 2), (10, 2), (15, 15), (20, 20)]
 
     if waypoints:
         controller = TrajectoryController(waypoints)
