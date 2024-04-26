@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import math
 import heapq
+import numpy as np
 
 # Class for each node in the grid
 class Node:
@@ -14,7 +15,6 @@ class Node:
         self.h = math.inf          # cost to goal (NOT heuristic)
         self.k = math.inf          # best h
         self.parent = None         # parent node
-# D*Lite
         self.g = math.inf
         self.rhs = math.inf
 
@@ -190,34 +190,56 @@ class AnytimeDynAStar:
                         self.updateState(neighbor)
                 self.updateState(node)
 
-    def run(self):
-        self.computeShortestPath()
-        # Publish current sub-optimal solution
-        while True:
-            # Determine if visible cost change
-            # cost_change, edge_list = self.check_maps(robot_map_in_FOV, global_map)
-            if cost_change:
-                ## List directed edges (u,v) with changed edge costs and update traversal costs
-                for node1, node2 in edge_list:
-                    cost = self.cost(node1, node2) # Where to store this?
-                    self.updateVertex(node1)
-            # if value_cost_change > tol:
-                # self.epsilon += self.epsilon_delta
-                # OR replan
-            elif self.epsilon > 1:
+    def onFlag(self):
+        changed_list = np.argwhere(np.logical_xor(self.grid, self.dynamic_grid))
+        quant_cost_change = len(changed_list)
+        for node in changed_list:
+            cost = self.cost(self.robot_position, node) # Where to store this?
+            self.updateState(node)
+        if quant_cost_change > tol:
+            self.epsilon += self.epsilon_delta
+            self.computeShortestPath() 
+            return path
+        elif self.epsilon > 1:
                 self.epsilon += -1*self.epsilon_delta
-            for node in self.incosisList:
-                self.incosisList.remove(node)
-                self.insertOpen(node, self.calculateKey(node))
-            for node, _ in self.openList:
-                k1, k2 = self.calculateKey(node)
-                self.updateKey(node,k1,k2)
-            self.closedList.clear()
-            self.computeShortestPath()
-            # Publish current suboptimal solution
-            if self.epsilon == 1:
-                pass # Eliminate this
-                # wait for changes in edge costs
+        for node in self.incosisList:
+            self.incosisList.remove(node)
+            self.insertOpen(node, self.calculateKey(node))
+        for node, _ in self.openList:
+            k1, k2 = self.calculateKey(node)
+            self.updateKey(node,k1,k2)
+        self.closedList.clear()
+        self.computeShortestPath()
+        return path
+
+    # def run(self):
+    #     self.computeShortestPath()
+    #     # Publish current sub-optimal solution
+    #     while True:
+    #         # Determine if visible cost change
+    #         # cost_change, edge_list = self.check_maps(robot_map_in_FOV, global_map)
+    #         if cost_change:
+    #             ## List directed edges (u,v) with changed edge costs and update traversal costs
+    #             for node1, node2 in edge_list:
+    #                 cost = self.cost(node1, node2) # Where to store this?
+    #                 self.updateState(node1)
+    #         # if value_cost_change > tol:
+    #             # self.epsilon += self.epsilon_delta
+    #             # OR replan
+    #         elif self.epsilon > 1:
+    #             self.epsilon += -1*self.epsilon_delta
+    #         for node in self.incosisList:
+    #             self.incosisList.remove(node)
+    #             self.insertOpen(node, self.calculateKey(node))
+    #         for node, _ in self.openList:
+    #             k1, k2 = self.calculateKey(node)
+    #             self.updateKey(node,k1,k2)
+    #         self.closedList.clear()
+    #         self.computeShortestPath()
+    #         # Publish current suboptimal solution
+    #         if self.epsilon == 1:
+    #             pass # Eliminate this
+    #             # wait for changes in edge costs
 
 # Unsure of what to preserve from this D* code for visualization
 
