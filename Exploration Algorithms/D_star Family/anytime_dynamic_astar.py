@@ -18,7 +18,7 @@ class Node:
         self.g = math.inf
         self.rhs = math.inf
 
-class DStarLite:
+class AnytimeDynAStar:
     def __init__(self, grid, dynamic_grid, start, goal):
         # Maps
         self.grid = grid                  # the pre-known grid map
