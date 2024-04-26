@@ -234,11 +234,6 @@ class Map:
         for i in range(len(line[:][0])):
             self.map[line[0][i]][line[1][i]] = 0
 
-    # Not sure if it works 
-    def map_to_world(self, p1):
-        return (np.asanyarray(p1)) / self.definition_conversion
-
-
     def path_plan(self, algorithm):
         if self.use_global_knowledge:
            self.robot_cspace =  np.asanyarray( isotropic_dilation(self.map,radius=int(self.c_space_dilation * self.definition_conversion[0]))
@@ -253,24 +248,42 @@ class Map:
             print(type(self.robot_cspace))
             print(self.robot_cspace)
             self.PRM = PRM(self.robot_cspace)
-            self.PRM.sample(n_pts=1400, sampling_method="random")
+            self.PRM.sample(n_pts=2000, sampling_method="random")
             if len(self.PRM.samples) == 0:
                 print("No samples generated.")
                 return None
-            # Start and goal for the search
+            # Start and goal
             start = self.robot_position
-            goal = self.world_to_map([40, 10])  # Example goal
+            goal = self.world_to_map([32, 37]) 
 
             self.PRM.search(start, goal)
             if self.PRM.path:
                     print('PRM PATH',self.PRM.path)
-                    # filtered_path = [self.index_to_coordinates(idx) for idx in self.PRM.path if isinstance(idx, int)]
-                    # waypoints = [self.map_to_world(coord) for coord in filtered_path]
-                    path = self.PRM.path  # From your PRM algorithm
-                    waypoints = map.convert_prm_path_to_world(path)
+                    node_path = self.PRM.path  
+                    clean_node_path =  path = [x for x in node_path if isinstance(x, int)]
+                    print('clean node', clean_node_path)
+                    path = [None] * len(clean_node_path)
 
-                    print('waypoint',waypoints)
-                    return waypoints
+                    for i in range(max(len(clean_node_path), 2)):
+                        if i < len(clean_node_path):
+                            sample = self.PRM.samples[clean_node_path[i]]
+                            path[i] = (int(sample[0]), int(sample[1]))
+                    print('first waypoint',path)
+
+                    # divide bythe conversion 
+                    if isinstance(self.definition_conversion, list):
+                    
+                            conversion_factor = self.definition_conversion[0]
+                    else:
+                            conversion_factor = self.definition_conversion
+
+
+                    for i in range(len(path)):
+                        path[i] = tuple(node / conversion_factor for node in path[i])
+
+
+                    print('REAL waypoint',path)
+                    return path 
             else:
                     print("No path found")
                     return None
@@ -279,26 +292,6 @@ class Map:
         if algorithm == "AD*" and self.robot_flag:
             return path
         
-    def convert_prm_path_to_world(self, path):
-        # Clean up the start and end 
-        path = [x for x in path if isinstance(x, int)]
-        print("Filtered path: ", path)
-
-
-        map_coordinates = [self.to_coordinates(id) for id in path]
-        print("Map Coordinates: ", map_coordinates)
-
-        world_coordinates = [self.map_to_world(coord) for coord in map_coordinates]
-        print("World Coordinates: ", world_coordinates)
-
-        return world_coordinates
-
-    def to_coordinates(self, index):
-        columns = 50 
-        x = index % columns
-        y = index // columns  
-        return (x, y)
-
 
 
 
@@ -500,11 +493,11 @@ def act(t, robot, controller):
     robot_angle = robot['center'].angle % 360
     print("Robot Angle", robot_angle)  
 
-    # Calculate the shortest angle to the target
+    # shortest angle to the target
     angle_diff = (angle_to_target - robot_angle + 180) % 360 - 180
     print("Robot Angle Difference", angle_diff)  
 
-    # Adjust speed
+    # speed stuff
     speed = min(base_speed, Kp_distance * distance_to_target)
     if distance_to_target > robot_to_target:
         turn_speed = min(base_turn_speed, Kp_angle * abs(angle_diff))
@@ -538,24 +531,20 @@ def act(t, robot, controller):
         else:
             human.F = 0.3
 
-
-def robot_controller( robot):
-    return [0,0]
-
 if __name__ == "__main__":
     wrld_size = [50,50]
     env = Environment(wrld_size[0], wrld_size[1])
     num_robots = 1
     num_humans = 2
     num_obstacles = 20
-    sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=True, use_global_knowledge=True)
+    sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=True ,use_global_knowledge=True)
     map = sim.map
     waypoints = map.path_plan("PRM")
     # waypoints = [(3, 2), (10, 2), (15, 15), (20, 20)]
 
     if waypoints:
         controller = TrajectoryController(waypoints)
-        run_sim(env, lambda t, robot: act(t, robot, controller), total_time=300, dt_display=10)
+        run_sim(env, lambda t, robot: act(t, robot, controller), total_time=400, dt_display=10)
     else:
         print("No valid waypoints generated, simulation will not start.", waypoints)
 # NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))
