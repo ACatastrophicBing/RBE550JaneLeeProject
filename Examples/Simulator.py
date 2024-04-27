@@ -15,7 +15,7 @@ from scipy import spatial
 import networkx as nx
 
 class Map:
-    def __init__(self, env, robot, boxes, humans=[],definition=[100,100], wrld_size=[50,50], lidar_range=5.0,
+    def __init__(self, env, robot, goal, boxes=[], humans=[],definition=[100,100], wrld_size=[50,50], lidar_range=5.0,
                  map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0, human_radius = 0.5,
                  use_global_knowledge = False, max_obj_size=12, visualize = False):
         self.env = env               # The environment we are in
@@ -23,7 +23,7 @@ class Map:
         self.humans = humans         # How many random movement agents we have in the environment
         self.human_size = human_radius
         self.definition = definition # How detailed of a map we want
-        self.definition_conversion = [(definition[0]-1)/wrld_size[0], (definition[1]-1)/wrld_size[1]]
+        self.definition_conversion = np.asarray([(definition[0]-1)/wrld_size[0], (definition[1]-1)/wrld_size[1]])
         self.lidar_range = int(lidar_range * self.definition_conversion[0])
         self.wrld_size = wrld_size
         self.lidar_range_mod = max_obj_size / 2 * self.definition_conversion[0]
@@ -33,11 +33,12 @@ class Map:
         self.global_map_init = global_map_init
         self.c_space_dilation = c_space_dilation
         self.use_global_knowledge = use_global_knowledge
+        self.goal = self.world_to_map(goal)
 
         self.robot_position = self.world_to_map(self.robot['center'].position)
         self.create_cell_maps()
-        self.robot_flag = False # If the robot updates its position in world, flag this
-        self.map_flag = False   # If the map has any changes compared to what it previously was, flag this
+        self.robot_flag = True # If the robot updates its position in world, flag this
+        self.map_flag = True   # If the map has any changes compared to what it previously was, flag this
         self.cell_map_update = 0
         self.map_update_rate = map_update_rate # How often we check the map to update things, map will also update if robot moves
 
@@ -67,9 +68,9 @@ class Map:
             # This cannot actually be done here since the environment hasn't been generated yet, so it is instead handled in the update function ONCE
         else:
             print("[MAP] Initializing Map NOT Knowing Global Snapshot")
-            self.robot_map = np.full(self.map.shape, 1, dtype=bool)
+            self.robot_map = np.full(self.map.shape, 0, dtype=bool)
 
-        self.last_map_update = 0
+        self.last_map_update = -1000
 
         self.robot_cspace = np.zeros(self.map.shape, dtype=bool)
 
@@ -93,25 +94,28 @@ class Map:
     def update(self, tick):
         # for robot in self.robots:
         #     continue
-        self.map_flag = False
 
         if int(tick * 1000) - self.last_map_update > self.map_update_rate and self.use_global_knowledge:
             # print("Updating Global Map")
             self.update_global_map()
             self.last_map_update = tick
             self.map_flag = True
+        else:
+            self.map_flag = False
 
         perceived_position = self.world_to_map(self.robot['center'].position)
         if perceived_position != self.robot_position:
             self.robot_flag = True
             self.robot_position = perceived_position
 
-        if self.global_map_init and tick > 1:
+        if self.global_map_init and tick == 0:
             print("Initializing the Robot map based on global current belief")
             self.robot_map = np.copy(self.map)
             self.global_map_init = False
+            self.last_map_update = tick
 
         if int(tick * 1000) - self.last_map_update > self.map_update_rate and self.robot_flag and not self.use_global_knowledge and not self.global_map_init:
+            self.last_map_update = tick
             self.robot_flag = False
             if self.use_global_knowledge:
                 self.robot_map = self.map
@@ -135,11 +139,11 @@ class Map:
                         p2 = self.points[box * 4 + vert - 1].astype(int)
                     line1 = ski.draw.line(self.points[vert_loc][0], self.points[vert_loc][1], p1[0], p1[1])
                     for i in range(len(line1[:][0])):
-                        if math.sqrt((self.robot_position[0] - line1[0][i])**2 + (self.robot_position[1] - line1[1][i])):
+                        if math.sqrt((self.robot_position[0] - line1[0][i])**2 + (self.robot_position[1] - line1[1][i])**2):
                             self.robot_map[line1[0][i]][line1[1][i]] = self.map[line1[0][i]][line1[1][i]]
                     line2 = ski.draw.line(self.points[vert_loc][0], self.points[vert_loc][1], p2[0], p2[1])
                     for i in range(len(line2[:][0])):
-                        if math.sqrt((self.robot_position[0] - line2[0][i])**2 + (self.robot_position[1] - line2[1][i])):
+                        if math.sqrt((self.robot_position[0] - line2[0][i])**2 + (self.robot_position[1] - line2[1][i])**2):
                             self.robot_map[line2[0][i]][line2[1][i]] = self.map[line2[0][i]][line2[1][i]]
 
                 for i in range(len(self.humans)):  # These dudes move every time step so you have to update the global map
@@ -254,6 +258,7 @@ class Map:
             self.map[math.ceil(math.cos(2 * math.pi / n * (i + 1)) * radius) + position[0], math.ceil(math.sin(2 * math.pi / n * (i + 1)) * radius) + position[1]] = add_to_map
 
 
+
     def create_cell_maps(self):
         """
         Creates a cell map that stores all the cells within a given radius around 0,0 to update our map.
@@ -289,34 +294,44 @@ class Map:
         not map coordinates.
         '''
         if self.use_global_knowledge:
-            self.robot_cspace = isotropic_dilation(self.map,
-                                                   radius=int(self.c_space_dilation * self.definition_conversion[0]))
+            self.robot_cspace = np.asarray(isotropic_dilation(self.map,
+                                                   radius=int(self.c_space_dilation * self.definition_conversion[0])))
         else:
-            self.robot_cspace = isotropic_dilation(self.robot_map,
-                                                   radius=int(self.c_space_dilation * self.definition_conversion[0]))
-        # TODO : The below code is still needed to be done
+            self.robot_cspace = np.asarray(isotropic_dilation(self.robot_map,
+                                                   radius=int(self.c_space_dilation * self.definition_conversion[0])))
+
         path = None
+
         if algorithm == "PRM":
             self.PRM = PRM(self.robot_cspace) # NOTE : You don't need to use self.Whatever,
             # I'm just using it because it was useful to do when debugging all the other code.
             self.PRM.sample(n_pts=500, sampling_method="random")
-            self.PRM.search(self.robot_position, self.world_to_map([20, 10]))
-            path = self.PRM.path
-            if self.visualize:
-                self.PRM.draw_map()
+            self.PRM.search(self.robot_position, self.goal)
+            if self.PRM.path:
+                node_path = self.PRM.path
+                path =  np.zeros([len(node_path) - 1, 2]) # Removes the START node
+                for i in range(1, len(node_path)):
+                    if isinstance(node_path[i], int):
+                        path[i-1] = np.divide(np.asarray(self.PRM.samples[node_path[i]], dtype=float), self.definition_conversion)
+                    else:
+                        path[i-1] = np.divide(np.asarray(self.goal, dtype=float), self.definition_conversion)
+                if self.visualize:
+                    print("[MAP] Visualizing Map")
+                    self.PRM.draw_map()
         if algorithm == "AD*" and self.robot_flag:
             path = None
         return path
 
 
 class Simulator:
-    def __init__(self, env, rand_obstacles=0, map_selector=None,wrld_size=[50,50], num_humans=0,
+    def __init__(self, env, goal, rand_obstacles=0, map_selector=None,wrld_size=[50,50], num_humans=0,
                  lidar_range=5.0, map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0,
                  human_radius = 0.5, use_global_knowledge = False, definition = [1000,1000], human_friction=0.7, visualize=False):
         self.env = env
         self.robots = []
         self.obstacles = []
         self.humans = []
+        self.goal = goal
         for i in range(num_humans):
             self.humans.append(Disk(self.env, x=Simulator.randbetween(8, 22), y=Simulator.randbetween(8, 22),
                     radius=0.5, angle=Simulator.randbetween(0, 360), color='red', linearDamping=human_friction))
@@ -391,7 +406,7 @@ class Simulator:
         # print(type(self.robots))
         # print(dir(self.robots))
 
-        self.map = Map(env, self.robots, boxes=self.obstacles, definition=definition, lidar_range=lidar_range,
+        self.map = Map(env, self.robots, goal, boxes=self.obstacles, definition=definition, lidar_range=lidar_range,
                        wrld_size=wrld_size,humans=self.humans, map_update_rate=map_update_rate,
                        global_map_init=global_map_init, c_space_dilation=c_space_dilation, human_radius=human_radius,
                        use_global_knowledge=use_global_knowledge, visualize=visualize)

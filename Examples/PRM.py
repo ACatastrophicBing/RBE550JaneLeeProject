@@ -179,7 +179,7 @@ class PRM:
         if self.path:
             # add temporary start and goal edge to the path
             final_path_edge = list(zip(self.path[:-1], self.path[1:]))
-            nx.draw_networkx_nodes(self.graph, pos=rotated_pos, nodelist=self.path, node_size=8, node_color='b')
+            nx.draw_networkx_nodes(self.graph, pos=rotated_pos, nodelist=self.path, node_size=8, node_color='g')
             nx.draw_networkx_edges(self.graph, pos=rotated_pos, edgelist=final_path_edge, width=2, edge_color='b')
 
         # draw start and goal
@@ -281,9 +281,9 @@ class PRM:
             print("The path length is %.2f" %path_length)
         except nx.exception.NetworkXNoPath:
             print("No path found")
-        
+
         # Draw result
-        self.draw_map()
+        # self.draw_map()
 
         self.graph.remove_nodes_from(['start', 'goal'])
         self.graph.remove_edges_from(start_pears)
