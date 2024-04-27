@@ -2,7 +2,7 @@
 # coding: utf-8
 
 import numpy as np
-from Simulator import Simulator, Map
+from Simulator import Simulator
 import sys
 import os
 path = os.getcwd()
@@ -10,6 +10,9 @@ sys.path.insert(1,path)
 print(path)
 from RobotSim373 import *
 import argparse
+import csv
+import time
+import math
 
 sim = None
 map = None
@@ -51,9 +54,15 @@ def act(t, robot):
     # YOU NEED TO MODIFY THE FOLLOWING CODE TO WORK WITH WHAT ALGORITHM YOU WANT TO RUN PROPERLY
     # IF YOU ARE ONLY RUNNING THE PATH PLANNER ON STARTUP, CHANGE NONE OF THESE VARIABLES AND @CAN TO GET THE MAP
     # TO INITIALIZE BEFORE RUNNING ACT
-    map.update(t)
+    global controller, tick_time_run, path_planning_time, robot_path, map_processing_time
 
-    global controller
+    
+    ms = time.process_time_ns()
+    map.update(t)
+    map_processing_time = map_processing_time + time.process_time_ns() - ms
+
+
+    s = time.process_time_ns()
     if sim.map.robot_flag and update_when_robot_moves and not update_when_map_updates:
         print("[ACT] Updating Map From Robot Position Update")
         controller = TrajectoryController(sim.map.path_plan(path_planner))
@@ -63,24 +72,26 @@ def act(t, robot):
     if t == 0: # Trajectory controller NEEDS to generate a path for robot to move, I don't know why, but that's just how it is
         print("[ACT] Initializing Starting Path Plan")
         controller = TrajectoryController(sim.map.path_plan(path_planner))
+    path_planning_time = path_planning_time + time.process_time_ns() - s
 
     if controller.waypoints is not None:
         target = controller.update_target(robot)
+        path_generated.append(controller.waypoints)
     else:
         print("[ACT] No Path Found")
         if not update_when_robot_moves and not update_when_robot_moves:
             print("[ACT] Environment MUST be restarted, because a new trajectory will NOT be made")
-            return
+            return True
         target = [robot['center'].x, robot['center'].y]
 
     if target == (None, None):
         print("[ACT] Robot has reached the final destination")
         robot['left'].F = 0
         robot['right'].F = 0
-        return
+        tick_time_run = t
+        return True
 
     target_x, target_y = target
-
 
     base_speed = 0.6
     base_turn_speed = 0.2
@@ -90,9 +101,10 @@ def act(t, robot):
     robot_to_target = 1  # Distance threshold to be considered "close" to the target
 
 
-    # Direction and distance
+    # Direction, distance, and location
     dx = target_x - robot['center'].x
     dy = target_y - robot['center'].y
+    robot_path.append([robot['center'].x, robot['center'].y])
 
     distance_to_target = np.sqrt(dx**2 + dy**2)
     angle_to_target = np.degrees(np.arctan2(dy, dx))
@@ -154,11 +166,52 @@ if __name__ == "__main__":
     num_robots = 1
     num_humans = 5
     num_obstacles = 20
-    print(visualize)
+    global tick_time_run, path_planning_time, map_processing_time, robot_path, path_generated
+    robot_path = []
+    path_generated = []
+    path_planning_time, map_processing_time, tick_time_run = 0, 0, 0
     sim = Simulator(env, goal, rand_obstacles=20, wrld_size=wrld_size, num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge, use_global_knowledge=args.use_global_knowledge, visualize=visualize)
     map = sim.map
     controller = None
-    run_sim(env, lambda t, robot: act(t, robot), total_time=400, dt_display=50)
-    map.path_plan("PRM")
+
+    time_allocated = 400
+
+    start = time.process_time_ns()
+    run_sim(env, lambda t, robot: act(t, robot), total_time=time_allocated, dt_display=50)
+    end = time.process_time_ns()
+    total_time = end - start
+
+    if tick_time_run == 0:
+        print("[MAIN] Robot FAILED to reach goal")
+        tick_time_run = time_allocated
+    else:
+        print("[MAIN] The time taken to run and reach the goal successfully was ", tick_time_run, " milliseconds of simulated environment time")
+
+    print("[MAIN] Processing Time Taken : ", total_time)
+    print("[MAIN] Path Planning Processing Taken : ", path_planning_time)
+    print("[MAIN] Time Taken Spent Updating The Map : ", map_processing_time)
+
+    recording_path = args.recording_path + "/"
+    data_file_name = args.path_planner
+    if args.dont_init_with_global_knowledge:
+        data_file_name = data_file_name + "_Global_Init"
+    if args.use_global_knowledge:
+        data_file_name = data_file_name + "_Global_Knowledge"
+    if args.update_on_robot_movement:
+        data_file_name = data_file_name + "_UpdateOnRobotMovement"
+    if args.update_on_map_update:
+        data_file_name = data_file_name + "_UpdateOnMapUpdate"
+
+    dist_travelled = 0
+    for i in range(len(robot_path) - 1):
+        dist_travelled = dist_travelled + math.dist(robot_path[i],robot_path[i+1])
+    data_file_name = data_file_name + ".csv"
+    with open(recording_path + data_file_name, 'a+') as output:
+        writer = csv.writer(output, delimiter=',')
+        writer.writerow(['Tot_Processing_Time', 'Path_Planning_Time', 'Robot_Distance_Travelled', 'Path_Taken'])
+        writer.writerow([total_time, path_planning_time, dist_travelled, robot_path[0], path_generated[0]])
+        for i in range(1, len(robot_path)):
+            writer.writerow([0, 0, 0, robot_path[i], path_generated[i]])
+
 
 # NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))

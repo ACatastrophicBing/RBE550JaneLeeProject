@@ -309,12 +309,13 @@ class Map:
             self.PRM.search(self.robot_position, self.goal)
             if self.PRM.path:
                 node_path = self.PRM.path
-                path =  np.zeros([len(node_path) - 1, 2]) # Removes the START node
+                path =  np.zeros([len(node_path), 2]) # Removes the START node
+                path[0] = np.divide(np.asarray(self.robot_position, dtype=float), self.definition_conversion)
                 for i in range(1, len(node_path)):
                     if isinstance(node_path[i], int):
-                        path[i-1] = np.divide(np.asarray(self.PRM.samples[node_path[i]], dtype=float), self.definition_conversion)
+                        path[i] = np.divide(np.asarray(self.PRM.samples[node_path[i]], dtype=float), self.definition_conversion)
                     else:
-                        path[i-1] = np.divide(np.asarray(self.goal, dtype=float), self.definition_conversion)
+                        path[i] = np.divide(np.asarray(self.goal, dtype=float), self.definition_conversion)
                 if self.visualize:
                     print("[MAP] Visualizing Map")
                     self.PRM.draw_map()
