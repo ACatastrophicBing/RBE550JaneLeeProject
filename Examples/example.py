@@ -16,6 +16,7 @@ import skimage as ski
 from skimage.morphology import isotropic_dilation
 from scipy import spatial
 import networkx as nx
+from RRT import RRT 
 
 
 class Map:
@@ -233,6 +234,17 @@ class Map:
         line = ski.draw.line(p1[0] + position[0], p1[1] + position[1], p2[0] + position[0], p2[1] + position[1])
         for i in range(len(line[:][0])):
             self.map[line[0][i]][line[1][i]] = 0
+    
+    def convert_coordinates(rrt_point, rrt_height, sim_width, sim_height):
+        # Invert y-coordinate
+        rrt_point_inverted_y = (rrt_point[0], rrt_height - rrt_point[1])
+
+        # Apply scaling factor (assuming uniform scaling for x and y)
+        scale_factor = rrt_height / sim_height
+        sim_point = (rrt_point_inverted_y[0] / scale_factor, rrt_point_inverted_y[1] / scale_factor)
+
+        return sim_point
+
 
     def path_plan(self, algorithm):
         if self.use_global_knowledge:
@@ -244,6 +256,11 @@ class Map:
         # self.robot_cspace = self.robot_map
         path = None
 
+
+        # Start and goal
+        start = self.robot_position
+        goal = self.world_to_map([40, 10]) 
+
         if algorithm == "PRM":
             print(type(self.robot_cspace))
             print(self.robot_cspace)
@@ -252,9 +269,7 @@ class Map:
             if len(self.PRM.samples) == 0:
                 print("No samples generated.")
                 return None
-            # Start and goal
-            start = self.robot_position
-            goal = self.world_to_map([32, 37]) 
+
 
             self.PRM.search(start, goal)
             if self.PRM.path:
@@ -284,7 +299,49 @@ class Map:
 
                     print('REAL waypoint',path)
                     return path 
-            else:
+            
+
+        elif algorithm == "RRT" or algorithm == "RRT*":
+
+                rrt = RRT(self.robot_cspace, start, goal)
+                if algorithm == "RRT":
+                    print('Starting RRT')
+                    rrt.RRT(n_pts=5000)  
+                else:
+                    print('Starting RRT*')
+                    rrt.RRT_star(n_pts=5000, neighbor_size=20)  
+                if rrt.found:
+                    print('Path found')
+
+                    path = []
+                    current = rrt.goal
+                    while current.parent is not None:
+                        path.append((current.row, current.col))
+                        current = current.parent
+                    path.append((current.row, current.col))  # Add the start point
+                    path.reverse() # Reverse 
+
+                    print('path',path)
+
+                    # From here convert the map to world 
+
+                    rrt_height = 1000 
+                    sim_width, sim_height = 50, 50
+
+                    def transform_coordinates(rrt_point, rrt_height, sim_width, sim_height):
+                        # invert y 
+                        sim_x = rrt_point[1] * sim_width / rrt_height
+                        sim_y = (rrt_height - rrt_point[0]) * sim_height / rrt_height
+                        return sim_x, sim_y
+
+                    transformed_path = [transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]
+                    print('Transformed path:', transformed_path)
+
+                    return transformed_path
+                else:
+                    print("No path found using", algorithm)
+                    return None
+        else:
                     print("No path found")
                     return None
 
@@ -293,6 +350,7 @@ class Map:
             return path
         
 
+    
 
 
 
@@ -539,7 +597,7 @@ if __name__ == "__main__":
     num_obstacles = 20
     sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=True ,use_global_knowledge=True)
     map = sim.map
-    waypoints = map.path_plan("PRM")
+    waypoints = map.path_plan("RRT")
     # waypoints = [(3, 2), (10, 2), (15, 15), (20, 20)]
 
     if waypoints:

@@ -23,12 +23,16 @@ class Node:
 class RRT:
     # Constructor
     def __init__(self, map_array, start, goal):
-        self.map_array = map_array            # map array, 1->free, 0->obstacle
+        self.map_array = np.rot90(map_array)            # map array, 1->free, 0->obstacle
         self.size_row = map_array.shape[0]    # map size
         self.size_col = map_array.shape[1]    # map size
 
-        self.start = Node(start[0], start[1]) # start node
-        self.goal = Node(goal[0], goal[1])    # goal node
+        self.start = Node(map_array.shape[1] - 1 - start[1], start[0])
+        self.goal = Node(map_array.shape[1] - 1 - goal[1], goal[0])
+
+        # self.start = Node(start[0], start[1]) # start node
+        # self.goal = Node(goal[0], goal[1])    # goal node
+   # goal node
         self.vertices = []                    # list of nodes
         self.found = False                    # found flag
         self.sampling_method = ""          # sampling method added to show the name of the algorithm
@@ -82,7 +86,7 @@ class RRT:
             x, y = int(point[0]), int(point[1])
             # I had to add this to check if the given point is within the map otherwise it will give out of index error
             if x >= 0 and y >= 0 and x < self.size_row and y < self.size_col:
-                if self.map_array[x, y] == 0:  # Check obstacles
+                if self.map_array[x, y] == 1:  # Check obstacles
                     return True  # Collision detected
         return False  # No collision detected
 
