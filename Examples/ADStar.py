@@ -186,7 +186,6 @@ class AnytimeDynAStar:
         return path
     
     def updateState(self, node):
-        print(node)
         if not node.visited:
             node.g = math.inf
         if node != self.goal:
