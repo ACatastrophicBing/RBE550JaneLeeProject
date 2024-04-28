@@ -170,8 +170,18 @@ class RRT:
                 neighbor.cost = new_node.cost + self.dis(new_node, neighbor)
 
 
-
+    def publish_path(self):
+        path = []
+        if self.found:
+            cur = self.goal
+            while cur.col != self.start.col and cur.row != self.start.row:
+                path.append[cur]
+                cur = cur.parent
+            path.reverse()
+        return path
+    
     # Edited to print the name of the algorithm 
+    # Are we using this function??
     def draw_map(self):
         '''Visualization of the result
         '''
@@ -268,7 +278,8 @@ class RRT:
             print("No path found")
         
         # Draw result
-        self.draw_map()
+        # self.draw_map()
+        return self.publish_path()
 
 
     def RRT_star(self, n_pts=1000, neighbor_size=20):
@@ -347,4 +358,60 @@ class RRT:
             print("No path found")
 
         # Draw result
-        self.draw_map()
+        # self.draw_map()
+        return self.publish_path()
+
+    def informed_RRT_star(self, n_pts=1000, neighbor_size=20):
+        '''Informed RRT* search function
+        arguments:
+            n_pts - number of points try to sample, 
+                    not the number of final sampled points
+            neighbor_size - the neighbor distance
+        
+        In each step, extend a new node if possible, and rewire the node and its neighbors
+        Once a path is found, an ellipsoid will be defined to constrained the sampling area
+        '''
+        # Remove previous result
+        self.init_map()
+        # Start searching       
+        for i in range(n_pts):
+
+            #### TODO ####
+            c_best = 0
+            # Once a path is found, update the best length of path - c_best
+            # using the function self.path_cost(self.start, self.goal)
+            if self.found:
+                c_best = self.path_cost(self.start,self.goal)
+
+            #### TODO END ####
+
+            # Extend a new node
+            new_point = self.sample(0.05, c_best)
+            new_node = self.extend(new_point, 10)
+            # Rewire
+            if new_node is not None:
+                neighbors = self.get_neighbors(new_node, neighbor_size)
+                self.rewire(new_node, neighbors)
+
+        # Output
+        if self.found:
+            steps = len(self.vertices) - 2
+            length = self.path_cost(self.start, self.goal)
+            print("It took %d nodes to find the current path" %steps)
+            print("The path length is %.2f" %length)
+        else:
+            print("No path found")
+
+        # Draw result
+        # self.draw_map()
+        return self.publish_path()
+
+    def publish_path(self):
+        path = []
+        if self.found:
+            cur = self.goal
+            while cur.col != self.start.col and cur.row != self.start.row:
+                path.append[cur]
+                cur = cur.parent
+            path.reverse()
+        return path

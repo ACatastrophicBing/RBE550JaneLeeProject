@@ -11,6 +11,10 @@ sys.path.insert(1,path)
 print(path)
 from RobotSim373 import *
 from PRM import PRM
+from RRT import *
+from DStar import DStar
+from DStar_Lite import DStarLite
+from ADStar import AnytimeDynAStar
 import math
 import skimage as ski
 
