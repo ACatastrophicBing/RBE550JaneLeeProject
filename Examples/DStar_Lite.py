@@ -45,16 +45,6 @@ class DStarLite:
 
         self.path = []
 
-        self.start = self.robot_position
-        state = self.start
-        self.computeShortestPath()
-        if state != self.goal and self.start.g != math.inf:
-            neighbors = self.get_neighbors(state)
-            candidate_state = neighbors[0]
-            for neighbor in neighbors:
-                if (self.cost(state,neighbor) + neighbor.g) < self.cost(state,candidate_state) + candidate_state.g:
-                    candidate_state = neighbor
-            return candidate_state
 
     #  Helper Functions   
 
@@ -204,20 +194,21 @@ class DStarLite:
 
         return path
     
-    # def firstPass(self): # Moved to init
-    #     self.start = self.robot_position
-    #     state = self.start
-    #     self.computeShortestPath()
-    #     if state != self.goal and self.start.g != math.inf:
-    #         neighbors = self.get_neighbors(state)
-    #         candidate_state = neighbors[0]
-    #         for neighbor in neighbors:
-    #             if (self.cost(state,neighbor) + neighbor.g) < self.cost(state,candidate_state) + candidate_state.g:
-    #                 candidate_state = neighbor
-    #         return candidate_state
+    def firstPass(self):
+        state = self.start
+        self.computeShortestPath()
+        if state != self.goal and self.start.g != math.inf:
+            neighbors = self.get_neighbors(state)
+            candidate_state = neighbors[0]
+            for neighbor in neighbors:
+                if (self.cost(state,neighbor) + neighbor.g) < self.cost(state,candidate_state) + candidate_state.g:
+                    candidate_state = neighbor
+            return candidate_state
     
-    def onFlag(self): # on robot move
+    def onFlag(self, dynamic_grid): # on robot move
+        self.dynamic_grid = dynamic_grid
         changed_list = np.argwhere(np.logical_xor(self.grid, self.dynamic_grid))
+        self.grid = dynamic_grid
         quant_cost_change = len(changed_list)
         if quant_cost_change > 0:
             km = km + self.calc_h(state)

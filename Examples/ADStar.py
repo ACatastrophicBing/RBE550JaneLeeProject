@@ -18,6 +18,7 @@ class Node:
         self.parent = None         # parent node
         self.g = math.inf
         self.rhs = math.inf
+        self.visited = False
 
 class AnytimeDynAStar:
     def __init__(self, grid, dynamic_grid, start, goal):
@@ -52,9 +53,9 @@ class AnytimeDynAStar:
         self.openList = []
         self.closedList = []
         self.incosisList = []
-        
+
         self.insertOpen(self.goal, self.calculateKey(self.goal))
-        heapq.heapify(self.queue)
+        heapq.heapify(self.openList)
 
         self.path = []
 
@@ -62,7 +63,7 @@ class AnytimeDynAStar:
 
     def instantiate_node(self, point):
         row, col = point
-        node = Node(row, col, not self.grid[row][col], not self.dynamic_grid[row][col])
+        node = Node(row, col, self.grid[row][col], self.dynamic_grid[row][col])
         return node
     
     def get_neighbors(self, node):
@@ -87,11 +88,11 @@ class AnytimeDynAStar:
         return (a**2 + b**2) ** (1/2)
     
     def calc_g(self, node):
-        node.g = self.cost(node, self.goal)
+        node.g = self.cost(node, self.start)
         return node.g
     
     def calc_h(self, node):
-        node.h = self.cost(node, self.start)
+        node.h = self.cost(node, self.goal)
         return node.h
     
     def calc_rhs(self, node):
@@ -112,12 +113,16 @@ class AnytimeDynAStar:
         heapq.heappush(self.openList, (k1, k2, node))
 
     def updateKey(self, node, k1, k2):
-        self.remove(node)
-        self.insert(node, k1, k2)
+        self.removeOpen(node)
+        self.insertOpen(node, (k1, k2))
 
     def removeOpen(self, node):
         self.openList = [(k1, k2, n) for k1, k2, n in self.openList if n != node]
         heapq.heapify(self.openList)
+
+    def removeInconsis(self, node):
+        self.incosisList = [(k1, k2, n) for k1, k2, n in self.incosisList if n != node]
+        heapq.heapify(self.incosisList)
 
     def topNode(self): # Return min priority node
         if self.openList:
@@ -127,15 +132,15 @@ class AnytimeDynAStar:
             return None
     
     def topKey(self): # Return smallest key pair
-        if self.queue:
-            keys = (self.queue[0][0:1])
+        if self.openList:
+            keys = (self.openList[0][0], self.openList[0][1])
             return keys
         else:
             return (math.inf, math.inf)
         
     def popNode(self): # Pop node of min priority
-        if self.queue:
-            return heapq.heappop(self.queue)[2]
+        if self.openList:
+            return heapq.heappop(self.openList)[2]
         else:
             return None
         
@@ -153,8 +158,8 @@ class AnytimeDynAStar:
                 return 0
     
     def calculateKey(self, node):
-        self.calc_g(node, self.start)
-        self.calc_h(node, self.goal)
+        self.calc_g(node)
+        self.calc_h(node)
         self.calc_rhs(node)
 
         if node.g > node.rhs:
@@ -173,6 +178,7 @@ class AnytimeDynAStar:
             for neighbor in self.get_neighbors(state):
                 if not neighbor.is_obs:
                     cost_list[neighbor] = self.calc_g(neighbor)
+            print("costlist : ", cost_list)
             path.append(min(cost_list, key=cost_list.get))
             if state == self.goal:
                 break
@@ -180,12 +186,13 @@ class AnytimeDynAStar:
         return path
     
     def updateState(self, node):
+        print(node)
         if not node.visited:
             node.g = math.inf
         if node != self.goal:
             node.rhs = self.calc_rhs(node)
-        if node in self.open:
-            self.delete(node)
+        if node in self.openList:
+            self.removeOpen(node)
         if (self.calc_g(node) != self.calc_rhs(node)):
             if node not in self.closedList:
                 self.insertOpen(node, self.calculateKey(node))
@@ -210,11 +217,13 @@ class AnytimeDynAStar:
                         self.updateState(neighbor)
                 self.updateState(node)
 
-    def onFlag(self):
+    def onFlag(self, dynamic_grid):
+        self.dynamic_grid = dynamic_grid
         tol = 5
         changed_list = np.argwhere(np.logical_xor(self.grid, self.dynamic_grid))
         quant_cost_change = len(changed_list)
-        for node in changed_list:
+        node_changed_list = [self.grid_node[node_pos[0]][node_pos[1]] for node_pos in changed_list]
+        for node in node_changed_list:
             cost = self.cost(self.robot_position, node) # Where to store this?
             self.updateState(node)
         if quant_cost_change > tol:
@@ -224,13 +233,15 @@ class AnytimeDynAStar:
         elif self.epsilon > 1:
                 self.epsilon += -1*self.epsilon_delta
         for node in self.incosisList:
-            self.incosisList.remove(node)
+            self.removeInconsis(node)
             self.insertOpen(node, self.calculateKey(node))
-        for node, _ in self.openList:
+        for tuple in self.openList:
+            _, _, node = tuple
             k1, k2 = self.calculateKey(node)
             self.updateKey(node,k1,k2)
         self.closedList.clear()
         self.computeShortestPath()
+        self.grid = dynamic_grid
         return self.extract_path()
 
     # def run(self):

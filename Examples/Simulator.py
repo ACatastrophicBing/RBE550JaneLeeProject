@@ -8,6 +8,10 @@ sys.path.insert(1,path)
 print(path)
 from RobotSim373 import *
 from PRM import PRM
+from RRT import *
+from DStar import DStar
+from ADStar import AnytimeDynAStar
+from DStar_Lite import DStarLite
 import math
 import skimage as ski
 from skimage.morphology import isotropic_dilation
@@ -320,8 +324,15 @@ class Map:
                 if self.visualize:
                     print("[MAP] Visualizing Map")
                     self.PRM.draw_map()
-        if algorithm == "AD*" and self.robot_flag:
-            path = None
+        
+        if algorithm == "ADStar":
+            if self.path_init:
+                self.ADStar = AnytimeDynAStar(self.robot_cspace,self.robot_cspace,self.robot_position,self.goal)
+                path = self.ADStar.onFlag(self.robot_cspace)
+                self.path_init = False
+            elif self.map_flag:
+                path = self.ADStar.onFlag(self.robot_cspace)
+            
         if algorithm == "DStar":
             if self.path_init:
                 self.DStar = DStar(self.robot_cspace, self.robot_cspace, self.robot_position, self.goal)
@@ -329,6 +340,14 @@ class Map:
                 self.path_init = False
             else:
                 path = self.DStar.onFlag(self.robot_cspace)
+
+        if algorithm == "DStarLite":
+            if self.path_init:
+                self.DStarLite = DStarLite(self.robot_cspace, self.robot_cspace, self.robot_position, self.goal)
+                path = DStarLite.firstPass()
+                self.path_init = False
+            elif self.robot_flag:
+                path = self.DStarLite.onFlag(self.robot_cspace)
         return path
 
 
