@@ -17,6 +17,7 @@ from skimage.morphology import isotropic_dilation
 from scipy import spatial
 import networkx as nx
 from RRT import RRT 
+from informed_RRT import informed_RRT
 
 
 class Map:
@@ -341,6 +342,34 @@ class Map:
                 else:
                     print("No path found using", algorithm)
                     return None
+                
+
+        if algorithm == "informed_RRT_star":
+            map_array = np.logical_not(self.robot_cspace).astype(int)
+            print('Starting Informed RRT*')
+            rrt = informed_RRT(map_array, start, goal)
+            rrt.informed_RRT_star(n_pts=10000, neighbor_size=20)
+
+            if rrt.found:
+                print('Path found by Informed RRT*')
+
+                current = rrt.goal
+                while current.parent is not None:
+                    path.append((current.row, current.col))
+                    current = current.parent
+                path.append((current.row, current.col))  
+                path.reverse()  
+
+                print('Path:', path)
+                # convet from map to world
+                transformed_path = [(x * self.definition_conversion[0], y * self.definition_conversion[1]) for x, y in path]
+                print('Transformed Path:', transformed_path)
+
+                return transformed_path
+            else:
+                print("No path found using Informed RRT*")
+                return None
+
         else:
                     print("No path found")
                     return None
@@ -597,7 +626,7 @@ if __name__ == "__main__":
     num_obstacles = 20
     sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=True ,use_global_knowledge=True)
     map = sim.map
-    waypoints = map.path_plan("RRT")
+    waypoints = map.path_plan("informed_RRT_star")
     # waypoints = [(3, 2), (10, 2), (15, 15), (20, 20)]
 
     if waypoints:
