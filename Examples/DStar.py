@@ -276,7 +276,8 @@ class DStar:
     #         self.process_state()
     #     self.get_backpointer_list(self.start)
 
-    def onFlag(self):
+    def onFlag(self, dynamic_grid):
+        self.dynamic_grid = dynamic_grid
         repairNode = self.start
         while repairNode is not self.goal:
             self.prepare_repair(repairNode)

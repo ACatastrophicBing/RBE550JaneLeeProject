@@ -34,6 +34,7 @@ class Map:
         self.c_space_dilation = c_space_dilation
         self.use_global_knowledge = use_global_knowledge
         self.goal = self.world_to_map(goal)
+        self.path_init = True
 
         self.robot_position = self.world_to_map(self.robot['center'].position)
         self.create_cell_maps()
@@ -321,6 +322,13 @@ class Map:
                     self.PRM.draw_map()
         if algorithm == "AD*" and self.robot_flag:
             path = None
+        if algorithm == "DStar":
+            if self.path_init:
+                self.DStar = DStar(self.robot_cspace, self.robot_cspace, self.robot_position, self.goal)
+                path = self.DStar.onFlag(self.robot_cspace)
+                self.path_init = False
+            else:
+                path = self.DStar.onFlag(self.robot_cspace)
         return path
 
 
