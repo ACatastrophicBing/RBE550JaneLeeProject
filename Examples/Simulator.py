@@ -13,7 +13,7 @@ import skimage as ski
 from skimage.morphology import isotropic_dilation
 from scipy import spatial
 import networkx as nx
-
+from RRT import RRT
 class Map:
     def __init__(self, env, robot, goal, boxes=[], humans=[],definition=[100,100], wrld_size=[50,50], lidar_range=5.0,
                  map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0, human_radius = 0.5,
@@ -319,6 +319,42 @@ class Map:
                 if self.visualize:
                     print("[MAP] Visualizing Map")
                     self.PRM.draw_map()
+        elif algorithm == "RRT" or algorithm == "RRT*":
+                rrt = RRT(self.robot_cspace, start, goal)
+                if algorithm == "RRT":
+                    print('Starting RRT')
+                    rrt.RRT(n_pts=5000)  
+                else:
+                    print('Starting RRT*')
+                    rrt.RRT_star(n_pts=5000, neighbor_size=20)  
+                if rrt.found:
+                    print('Path found')
+                    path = []
+                    current = rrt.goal
+                    while current.parent is not None:
+                        path.append((current.row, current.col))
+                        current = current.parent
+                    path.append((current.row, current.col))  # Add the start point
+                    path.reverse() # Reverse 
+                    print('path',path)
+                    # convert map 
+                    rrt_height = 1000 
+                    sim_width, sim_height = 50, 50
+
+
+                    # This is chanching the map to world
+                    def transform_coordinates(rrt_point, rrt_height, sim_width, sim_height):
+                        # invert y 
+                        sim_x = rrt_point[1] * sim_width / rrt_height
+                        sim_y = (rrt_height - rrt_point[0]) * sim_height / rrt_height
+                        return sim_x, sim_y
+
+                    transformed_path = [transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]
+                    print('Transformed path:', transformed_path)
+                    return transformed_path
+                else:
+                    print("No path found using", algorithm)
+                    return None
         if algorithm == "AD*" and self.robot_flag:
             path = None
         return path
