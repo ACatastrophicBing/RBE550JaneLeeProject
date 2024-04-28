@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 import math
+import numpy as np
 
 # Class for each node in the grid
 class Node:
@@ -39,8 +40,7 @@ class DStar:
 
         # Result
         self.path = []
-
-        self.start = self.robot_position
+        
         self.insert(self.goal, self.goal.h)
         while len(self.open) != 0 and self.start.tag != "CLOSED":    
             self.process_state()
@@ -233,14 +233,23 @@ class DStar:
             
                 # Modify the cost from this neighbor node to all this neighbor's neighbors
                 # using self.modify_cost
-        
-        neighbors = self.get_neighbors(node)
-        for neighbor in neighbors:
-            if neighbor.is_dy_obs == True and neighbor.is_obs == False:
-                # print((neighbor.row, neighbor.col, "is new obstacle"))
-                secondaryNeighbors = self.get_neighbors(neighbor)
+        changed_list = np.argwhere(np.logical_xor(self.grid, self.dynamic_grid))
+        for node_pos in changed_list:
+            if self.dynamic_grid[node_pos]:
+                self.dynamic_grid[node_pos].is_obs = True
+                secondaryNeighbors = self.get_neighbors(self.dynamic_grid[node_pos])
                 for secondaryNeighbor in secondaryNeighbors:
-                    self.modify_cost(obstacle_node=neighbor,neighbor=secondaryNeighbor)
+                    self.modify_cost(obstacle_node=self.dynamic_grid[node_pos], neighbor=secondaryNeighbor)
+            else:
+                self.dynamic_grid[node_pos].is_obs = False
+    
+        # neighbors = self.get_neighbors(node)
+        # for neighbor in neighbors:
+            # if neighbor.is_dy_obs == True and neighbor.is_obs == False:
+            #     # print((neighbor.row, neighbor.col, "is new obstacle"))
+            #     secondaryNeighbors = self.get_neighbors(neighbor)
+            #     for secondaryNeighbor in secondaryNeighbors:
+            #         self.modify_cost(obstacle_node=neighbor,neighbor=secondaryNeighbor)
                 
 
         #### TODO END ####
@@ -284,6 +293,7 @@ class DStar:
             self.repair_replan(repairNode)
             self.get_backpointer_list(repairNode)
             repairNode = repairNode.parent
+        
         return self.path
 
 
