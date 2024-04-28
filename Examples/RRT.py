@@ -181,7 +181,8 @@ class RRT:
         '''
         # Create empty map
         fig, ax = plt.subplots(1)
-        img = 255 * np.dstack((self.map_array, self.map_array, self.map_array))
+        arr = 1 - self.map_array
+        img = 255 * np.dstack((arr, arr, arr))
         ax.imshow(img)
 
         # Draw Trees or Sample points
