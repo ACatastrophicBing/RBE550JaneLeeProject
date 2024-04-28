@@ -320,7 +320,7 @@ class Map:
                     print("[MAP] Visualizing Map")
                     self.PRM.draw_map()
         elif algorithm == "RRT" or algorithm == "RRT*":
-                rrt = RRT(self.robot_cspace, start, goal)
+                rrt = RRT(self.robot_cspace, self.robot_position, self.goal)
                 if algorithm == "RRT":
                     print('Starting RRT')
                     rrt.RRT(n_pts=5000)  
@@ -328,7 +328,7 @@ class Map:
                     print('Starting RRT*')
                     rrt.RRT_star(n_pts=5000, neighbor_size=20)  
                 if rrt.found:
-                    print('Path found')
+                    # print('Path found')
                     path = []
                     current = rrt.goal
                     while current.parent is not None:
@@ -336,7 +336,7 @@ class Map:
                         current = current.parent
                     path.append((current.row, current.col))  # Add the start point
                     path.reverse() # Reverse 
-                    print('path',path)
+                    # print('path',path)
                     # convert map 
                     rrt_height = 1000 
                     sim_width, sim_height = 50, 50
@@ -350,7 +350,7 @@ class Map:
                         return sim_x, sim_y
 
                     transformed_path = [transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]
-                    print('Transformed path:', transformed_path)
+                    # print('Transformed path:', transformed_path)
                     return transformed_path
                 else:
                     print("No path found using", algorithm)

@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
     wrld_size = [50,50]
     # NOTE : THIS IS IMPORTANT : THIS IS THE PLACE WHERE YOU CHANGE WHERE TO PUT THE GOAL
-    goal = [10,20]
+    goal = [40,10]
 
     env = Environment(wrld_size[0], wrld_size[1])
     num_robots = 1
@@ -170,7 +170,7 @@ if __name__ == "__main__":
     robot_path = []
     path_generated = []
     path_planning_time, map_processing_time, tick_time_run = 0, 0, 0
-    sim = Simulator(env, goal, rand_obstacles=20, wrld_size=wrld_size, num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge, use_global_knowledge=args.use_global_knowledge, visualize=visualize)
+    sim = Simulator(env, goal, rand_obstacles=20, wrld_size=wrld_size, num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge, use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=1)
     map = sim.map
     controller = None
 
@@ -209,8 +209,8 @@ if __name__ == "__main__":
     with open(recording_path + data_file_name, 'a+') as output:
         writer = csv.writer(output, delimiter=',')
         writer.writerow(['Tot_Processing_Time', 'Path_Planning_Time', 'Robot_Distance_Travelled', 'Path_Taken'])
-        writer.writerow([total_time, path_planning_time, dist_travelled, robot_path[0], path_generated[0]])
-        for i in range(1, len(robot_path)):
+        writer.writerow([total_time, path_planning_time, dist_travelled, 0, 0])
+        for i in range(0, len(robot_path)):
             writer.writerow([0, 0, 0, robot_path[i], path_generated[i]])
 
 
