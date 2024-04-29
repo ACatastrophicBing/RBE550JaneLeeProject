@@ -19,8 +19,8 @@ class Node:
 class DStar:
     def __init__(self, grid, dynamic_grid, start, goal):
         # Maps
-        self.grid = grid                  # the pre-known grid map
-        self.dynamic_grid = dynamic_grid  # the actual grid map (with dynamic obstacles)
+        self.grid = np.rot90(grid)                  # the pre-known grid map
+        self.dynamic_grid = np.rot90(dynamic_grid)  # the actual grid map (with dynamic obstacles)
         # Create a new grid to store nodes
         size_row = len(grid)
         size_col = len(grid[0])
@@ -154,7 +154,7 @@ class DStar:
         neighbors = self.get_neighbors(node)
 
         if kOld<node.h:
-            print("Raise")
+            # print("Raise")
             for neighbor in neighbors:
                 if neighbor.h<=kOld and (node.h>(neighbor.h+self.cost(neighbor,node))):
                     node.parent=neighbor
@@ -162,13 +162,13 @@ class DStar:
 
         # If node k is the same as h (LOWER)
         if kOld == node.h:
-            print("Lower")
+            # print("Lower")
             for neighbor in neighbors:
                 if neighbor.tag == "NEW" or neighbor.parent == node and neighbor.h != (node.h + self.cost(neighbor,node)) or neighbor.parent != node and neighbor.h > node.h + self.cost(node, neighbor):
                     neighbor.parent = node
                     self.insert(neighbor, node.h + self.cost(node, neighbor))
         else:
-            print("else")
+            # print("else")
             for neighbor in neighbors:
                 if neighbor.tag == "NEW" or neighbor.parent == node and neighbor.h != (node.h + self.cost(neighbor, node)):
                     neighbor.parent = node
@@ -289,7 +289,7 @@ class DStar:
     #     self.get_backpointer_list(self.start)
 
     def onFlag(self, dynamic_grid):
-        self.dynamic_grid = dynamic_grid
+        self.dynamic_grid = np.rot90(dynamic_grid)
         repairNode = self.start
         while repairNode is not self.goal:
             self.prepare_repair(repairNode)
@@ -410,4 +410,4 @@ class DStar:
         plt.title(title)
         plt.axis('scaled')
         plt.gca().invert_yaxis()
-        plt.show(block = False)
+        plt.show()
