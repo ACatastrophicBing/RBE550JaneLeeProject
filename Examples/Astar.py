@@ -108,10 +108,11 @@ def dijkstra(grid, start, goal):
 
     path = []
     steps = 0
+    grid = np.rot90(grid)
     rows, cols = len(grid), len(grid[0])
     nodes = [[Node(r, c, grid[r][c] == 1, 0) for c in range(cols)] for r in range(rows)]
-    start_node = nodes[start[0]][start[1]]
-    goal_node = nodes[goal[0]][goal[1]]
+    start_node = nodes[len(grid) - 1 - start[1]][start[0]]
+    goal_node = nodes[len(grid) - 1 - goal[1]][goal[0]]
     start_node.g = 0
     start_node.cost = 0
 
