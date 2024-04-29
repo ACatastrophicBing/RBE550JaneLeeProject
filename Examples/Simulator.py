@@ -326,10 +326,16 @@ class Map:
                 rrt = RRT(self.robot_cspace, self.robot_position, self.goal)
                 if algorithm == "RRT":
                     print('Starting RRT')
-                    rrt.RRT(n_pts=5000)  
+                    rrt.RRT(n_pts=14000)  
+                    if self.visualize:
+                        print("[MAP] Visualizing Map")
+                        rrt.draw_map()
                 else:
                     print('Starting RRT*')
                     rrt.RRT_star(n_pts=5000, neighbor_size=20)  
+                    if self.visualize:
+                        print("[MAP] Visualizing Map")
+                        rrt.draw_map()
                 if rrt.found:
                     # print('Path found')
                     path = []
@@ -343,9 +349,7 @@ class Map:
                     # convert map 
                     rrt_height = 1000 
                     sim_width, sim_height = 50, 50
-                    if self.visualize:
-                        print("[MAP] Visualizing Map")
-                        rrt.draw_map()
+                    
 
 
                     # This is chanching the map to world
@@ -503,7 +507,7 @@ class Simulator:
     def build(self, robot):
         # TODO : Generate random positions of robots that don't overlap with other robots
         # ADDED FRICITION HERE
-        dampling = 0.5
+        dampling = 1.3
 
         print(self.start)
         box1 = Box(robot, x=self.start[0], y=self.start[1]-0.25, width=0.5, height=0.5, name="right", linearDamping=dampling )
