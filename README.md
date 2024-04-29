@@ -24,6 +24,7 @@ The following flags can also be called when running this line :
 --use_global_knowledge : The robot will use the global map instead of the robot local map
 --update_on_robot_movement : The robot will update its path when the robot moves
 --update_on_map_update : The robot will update its path when the global map updates, this does not mean the robot is using global knowledge
+--iterations : The number of times you want to run this specific experiment, this is for data collection purposes, and when collecting data, DO NOT VISUALIZE THE SIM OR PATHS GENERATED
 
 TODO :
 

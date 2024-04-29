@@ -303,13 +303,14 @@ class Map:
                                                    radius=int(self.c_space_dilation * self.definition_conversion[0])))
 
         path = None
-
         if algorithm == "PRM":
-            self.PRM = PRM(self.robot_cspace) # NOTE : You don't need to use self.Whatever,
+            self.PRM = PRM(self.robot_cspace, gaussian_search=0.05, neighborhood_search = 0.15) # NOTE : You don't need to use self.Whatever,
             # I'm just using it because it was useful to do when debugging all the other code.
-            self.PRM.sample(n_pts=500, sampling_method="random")
+            self.PRM.sample(n_pts=1000, sampling_method="random")
             self.PRM.search(self.robot_position, self.goal)
+            print(self.PRM.path)
             if self.PRM.path:
+                print("[MAP] Path Planning PRM")
                 node_path = self.PRM.path
                 path =  np.zeros([len(node_path), 2]) # Removes the START node
                 path[0] = np.divide(np.asarray(self.robot_position, dtype=float), self.definition_conversion)
@@ -318,9 +319,9 @@ class Map:
                         path[i] = np.divide(np.asarray(self.PRM.samples[node_path[i]], dtype=float), self.definition_conversion)
                     else:
                         path[i] = np.divide(np.asarray(self.goal, dtype=float), self.definition_conversion)
-                if self.visualize:
-                    print("[MAP] Visualizing Map")
-                    self.PRM.draw_map()
+            if self.visualize:
+                print("[MAP] Visualizing Map")
+                self.PRM.draw_map()
         elif algorithm == "RRT" or algorithm == "RRT*":
                 rrt = RRT(self.robot_cspace, self.robot_position, self.goal)
                 if algorithm == "RRT":
@@ -342,6 +343,9 @@ class Map:
                     # convert map 
                     rrt_height = 1000 
                     sim_width, sim_height = 50, 50
+                    if self.visualize:
+                        print("[MAP] Visualizing Map")
+                        rrt.draw_map()
 
 
                     # This is chanching the map to world
@@ -378,6 +382,10 @@ class Map:
                 rrt_height = 1000 
                 sim_width, sim_height = 50, 50
 
+                if self.visualize:
+                    print("[MAP] Visualizing Map")
+                    rrt.draw_map()
+
 
                     # This is chanching the map to world
                 def transform_coordinates(rrt_point, rrt_height, sim_width, sim_height):
@@ -404,7 +412,7 @@ class Map:
 
 
 class Simulator:
-    def __init__(self, env, goal, rand_obstacles=0, map_selector=None,wrld_size=[50,50], num_humans=0,
+    def __init__(self, env, start, goal, rand_obstacles=0, map_selector=None,wrld_size=[50,50], num_humans=0,
                  lidar_range=5.0, map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0,
                  human_radius = 0.5, use_global_knowledge = False, definition = [1000,1000], human_friction=0.7, visualize=False):
         self.env = env
@@ -412,6 +420,7 @@ class Simulator:
         self.obstacles = []
         self.humans = []
         self.goal = goal
+        self.start = start
         for i in range(num_humans):
             self.humans.append(Disk(self.env, x=Simulator.randbetween(8, 22), y=Simulator.randbetween(8, 22),
                     radius=0.5, angle=Simulator.randbetween(0, 360), color='red', linearDamping=human_friction))
@@ -496,12 +505,12 @@ class Simulator:
         # ADDED FRICITION HERE
         dampling = 0.5
 
-        box1 = Box(robot, x=2, y=10, name="right", linearDamping=dampling )
-        box2 = Box(robot, x=2, y=11, name="left",linearDamping=dampling)
+        box1 = Box(robot, x=self.start[0], y=self.start[1]-0.25, width=0.5, height=0.5, name="right", linearDamping=dampling )
+        box2 = Box(robot, x=self.start[0], y=self.start[1]+0.25, width=0.5, height=0.5, name="left", linearDamping=dampling)
 
         connect(box1, box2, "weld")
 
-        disk1 = Disk(robot, x=2, y=10.5, radius=1, name="center")
+        disk1 = Disk(robot, x=self.start[0], y=self.start[1], radius=0.5, name="center")
 
         connect(disk1, box1, "distance")
         connect(disk1, box2, "distance")

@@ -273,7 +273,7 @@ class RRT:
             print("No path found")
         
         # Draw result
-        self.draw_map()
+        # self.draw_map()
 
 
     def RRT_star(self, n_pts=1000, neighbor_size=20):
@@ -352,4 +352,4 @@ class RRT:
             print("No path found")
 
         # Draw result
-        self.draw_map()
+        # self.draw_map()

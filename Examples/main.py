@@ -161,25 +161,36 @@ if __name__ == "__main__":
 
     wrld_size = [50,50]
     # NOTE : THIS IS IMPORTANT : THIS IS THE PLACE WHERE YOU CHANGE WHERE TO PUT THE GOAL
-    goal = [40,15]
+    goal = [25, 25]
+    start = [2, 10.5]
 
-    env = Environment(wrld_size[0], wrld_size[1])
     num_robots = 1
     num_humans = 5
     num_obstacles = 20
     global tick_time_run, path_planning_time, map_processing_time, robot_path, path_generated
-    robot_path = []
-    path_generated = []
-    path_planning_time, map_processing_time, tick_time_run = 0, 0, 0
-    sim = Simulator(env, goal, c_space_dilation=0.1,rand_obstacles=20, wrld_size=wrld_size, num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge, use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=1)
-    map = sim.map
-    controller = None
+
+    if args.path_planner == "informed_RRT_star":
+        dilation = 0.1
+    else:
+        dilation = 0.5
 
     time_allocated = 400
 
     for i in range(int(args.iterations)):
+        env = Environment(wrld_size[0], wrld_size[1])
+
+        robot_path = []
+        path_generated = []
+        path_planning_time, map_processing_time, tick_time_run = 0, 0, 0
+
+        sim = Simulator(env, start, goal, c_space_dilation=dilation, rand_obstacles=20, wrld_size=wrld_size,
+                        num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge,
+                        use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=1)
+        map = sim.map
+        controller = None
+
         start = time.process_time_ns()
-        run_sim(env, lambda t, robot: act(t, robot), total_time=time_allocated, dt_display=50)
+        run_sim(env, lambda t, robot: act(t, robot), total_time=time_allocated, dt_display=50, disp=False)
         end = time.process_time_ns()
         total_time = end - start
 
@@ -187,7 +198,7 @@ if __name__ == "__main__":
             print("[MAIN] Robot FAILED to reach goal")
             tick_time_run = time_allocated
         else:
-            print("[MAIN] The time taken to run and reach the goal successfully was ", tick_time_run, " milliseconds of simulated environment time")
+            print("[MAIN] The time taken to run and reach the goal successfully was ", tick_time_run, " seconds of simulated environment time")
 
         print("[MAIN] Processing Time Taken : ", total_time)
         print("[MAIN] Path Planning Processing Taken : ", path_planning_time)
@@ -206,21 +217,26 @@ if __name__ == "__main__":
 
         dist_travelled = 0
         angle_sum = 0
-        for i in range(len(robot_path) - 1):
-            dist_travelled = dist_travelled + math.dist(robot_path[i],robot_path[i+1])
-            if i > 0:
-                p1 = np.asarray(robot_path[i]) - np.asarray(robot_path[i-1]) # Yes this could be quicker but also, no
-                p2 = np.asarray(robot_path[i+1]) - np.asarray(robot_path[i])
+        for k in range(len(robot_path) - 1):
+            dist_travelled = dist_travelled + math.dist(robot_path[k],robot_path[k+1])
+            if k > 0:
+                p1 = np.asarray(robot_path[k]) - np.asarray(robot_path[k-1]) # Yes this could be quicker but also, no
+                p2 = np.asarray(robot_path[k+1]) - np.asarray(robot_path[k])
                 angle_sum = angle_sum + abs(math.atan2(p2[1]-p1[1], p2[0]-p1[0]))
-        smoothness = angle_sum / len(robot_path)
+        if len(robot_path) != 0:
+            smoothness = angle_sum / len(robot_path)
+        else:
+            smoothness = 0
 
-        data_file_name = data_file_name + "_" + i + ".csv"
+        data_file_name = data_file_name + "_" + str(i) + ".csv"
+        print("[MAIN] Saving ", data_file_name)
         with open(recording_path + data_file_name, 'w+') as output:
             writer = csv.writer(output, delimiter=',')
-            writer.writerow(['Tot_Processing_Time', 'Path_Planning_Time', 'Robot_Distance_Travelled', 'Path_Smoothness', 'Path_Taken'])
-            writer.writerow([total_time, path_planning_time, dist_travelled, smoothness, 0, 0])
-            for i in range(0, len(robot_path)):
-                writer.writerow([0, 0, 0, 0, robot_path[i], path_generated[i]])
+            writer.writerow(['Tot_Processing_Time', 'Simulation_World_Time', 'Path_Planning_Time',
+                             'Robot_Distance_Travelled', 'Path_Smoothness', 'Path_Taken', 'Path_Generated'])
+            writer.writerow([total_time, tick_time_run, path_planning_time, dist_travelled, smoothness, 0, 0])
+            for j in range(0, len(robot_path)):
+                writer.writerow([0, 0, 0, 0, robot_path[j], path_generated[j]])
 
 
 # NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))

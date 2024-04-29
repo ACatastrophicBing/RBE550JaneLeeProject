@@ -1249,7 +1249,8 @@ def close(env,fig):
 def run_sim(env,act,total_time,dt=1.0/60,dt_display=1,
             figure_width=10,
             plot_orientation=True,
-            show_boundary=False):
+            show_boundary=False,
+            disp=True):
 
     
     env.t=0
@@ -1304,10 +1305,12 @@ def run_sim(env,act,total_time,dt=1.0/60,dt_display=1,
             if not dt_display is None:
                 if env.t>=next_display_t:
                     next_display_t=env.t+dt_display
-                    fig=display(env,robot)
+                    if disp:
+                        fig=display(env,robot)
 
         except KeyboardInterrupt:
-            fig=display(env,robot)
+            if disp:
+                fig=display(env,robot)
             stop=True    
 
     if not dt_display is None:
