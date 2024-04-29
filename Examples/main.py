@@ -150,6 +150,7 @@ if __name__ == "__main__":
     parser.add_argument("--use_global_knowledge", action='store_true', default=False)
     parser.add_argument("--update_on_robot_movement", action='store_true', default=False)
     parser.add_argument("--update_on_map_update", action='store_true', default=False)
+    parser.add_argument("--iterations", default=1)
     # parser.add_argument("--any_more_things_you_may_need",default = False)
 
     args = parser.parse_args()
@@ -176,42 +177,50 @@ if __name__ == "__main__":
 
     time_allocated = 400
 
-    start = time.process_time_ns()
-    run_sim(env, lambda t, robot: act(t, robot), total_time=time_allocated, dt_display=50)
-    end = time.process_time_ns()
-    total_time = end - start
+    for i in range(int(args.iterations)):
+        start = time.process_time_ns()
+        run_sim(env, lambda t, robot: act(t, robot), total_time=time_allocated, dt_display=50)
+        end = time.process_time_ns()
+        total_time = end - start
 
-    if tick_time_run == 0:
-        print("[MAIN] Robot FAILED to reach goal")
-        tick_time_run = time_allocated
-    else:
-        print("[MAIN] The time taken to run and reach the goal successfully was ", tick_time_run, " milliseconds of simulated environment time")
+        if tick_time_run == 0:
+            print("[MAIN] Robot FAILED to reach goal")
+            tick_time_run = time_allocated
+        else:
+            print("[MAIN] The time taken to run and reach the goal successfully was ", tick_time_run, " milliseconds of simulated environment time")
 
-    print("[MAIN] Processing Time Taken : ", total_time)
-    print("[MAIN] Path Planning Processing Taken : ", path_planning_time)
-    print("[MAIN] Time Taken Spent Updating The Map : ", map_processing_time)
+        print("[MAIN] Processing Time Taken : ", total_time)
+        print("[MAIN] Path Planning Processing Taken : ", path_planning_time)
+        print("[MAIN] Time Taken Spent Updating The Map : ", map_processing_time)
 
-    recording_path = args.recording_path + "/"
-    data_file_name = args.path_planner
-    if args.dont_init_with_global_knowledge:
-        data_file_name = data_file_name + "_Global_Init"
-    if args.use_global_knowledge:
-        data_file_name = data_file_name + "_Global_Knowledge"
-    if args.update_on_robot_movement:
-        data_file_name = data_file_name + "_UpdateOnRobotMovement"
-    if args.update_on_map_update:
-        data_file_name = data_file_name + "_UpdateOnMapUpdate"
+        recording_path = args.recording_path + "/"
+        data_file_name = args.path_planner
+        if args.dont_init_with_global_knowledge:
+            data_file_name = data_file_name + "_Global_Init"
+        if args.use_global_knowledge:
+            data_file_name = data_file_name + "_Global_Knowledge"
+        if args.update_on_robot_movement:
+            data_file_name = data_file_name + "_UpdateOnRobotMovement"
+        if args.update_on_map_update:
+            data_file_name = data_file_name + "_UpdateOnMapUpdate"
 
-    dist_travelled = 0
-    for i in range(len(robot_path) - 1):
-        dist_travelled = dist_travelled + math.dist(robot_path[i],robot_path[i+1])
-    data_file_name = data_file_name + ".csv"
-    with open(recording_path + data_file_name, 'a+') as output:
-        writer = csv.writer(output, delimiter=',')
-        writer.writerow(['Tot_Processing_Time', 'Path_Planning_Time', 'Robot_Distance_Travelled', 'Path_Taken'])
-        writer.writerow([total_time, path_planning_time, dist_travelled, 0, 0])
-        for i in range(0, len(robot_path)):
-            writer.writerow([0, 0, 0, robot_path[i], path_generated[i]])
+        dist_travelled = 0
+        angle_sum = 0
+        for i in range(len(robot_path) - 1):
+            dist_travelled = dist_travelled + math.dist(robot_path[i],robot_path[i+1])
+            if i > 0:
+                p1 = np.asarray(robot_path[i]) - np.asarray(robot_path[i-1]) # Yes this could be quicker but also, no
+                p2 = np.asarray(robot_path[i+1]) - np.asarray(robot_path[i])
+                angle_sum = angle_sum + abs(math.atan2(p2[1]-p1[1], p2[0]-p1[0]))
+        smoothness = angle_sum / len(robot_path)
+
+        data_file_name = data_file_name + "_" + i + ".csv"
+        with open(recording_path + data_file_name, 'w+') as output:
+            writer = csv.writer(output, delimiter=',')
+            writer.writerow(['Tot_Processing_Time', 'Path_Planning_Time', 'Robot_Distance_Travelled', 'Path_Smoothness', 'Path_Taken'])
+            writer.writerow([total_time, path_planning_time, dist_travelled, smoothness, 0, 0])
+            for i in range(0, len(robot_path)):
+                writer.writerow([0, 0, 0, 0, robot_path[i], path_generated[i]])
 
 
 # NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))
