@@ -9,32 +9,32 @@ import pandas as pd
 from itertools import chain
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--file_name")
+parser.add_argument("file_name")
 parser.add_argument("--episodes", default=0)
 
 
 args = parser.parse_args()
 
-print("\n. . . Live Plotting the robot path and simulation ", args.data_file, " . . .")
+print("\n. . . Live Plotting the robot path and simulation ", args.file_name, " . . .")
 if int(args.episodes) == 0:
     print(". . . Plotting only one episode")
 else:
     print(". . . Plotting multiple episodes on one map")
-
-success = np.full([(args.episodes+1)], 1)
-processing_time = np.array([(args.episodes+1)], dtype=float) / 1000000
-pp_time = np.array([(args.episodes+1)], dtype=float) / 1000000
-simulation_world_time = np.array([(args.episodes+1)], dtype=int)
-distance_travelled = np.array([(args.episodes+1)], dtype=float)
-robot_smoothness = np.array([(args.episodes+1)], dtype=float)
-path_smoothness = np.array([(args.episodes+1)], dtype=float)
-path_length = np.array([(args.episodes+1)], dtype=float)
-r_paths = [] * (args.episodes+1)
-g_paths = [] * (args.episodes+1)
-for i in range(args.episodes + 1):
-    if args.data_file is not None:
+size = int(args.episodes) + 1
+success = np.full([size], 1)
+processing_time = np.array([size], dtype=float)
+pp_time = np.array([size], dtype=float)
+simulation_world_time = np.array([size], dtype=int)
+distance_travelled = np.array([size], dtype=float)
+robot_smoothness = np.array([size], dtype=float)
+path_smoothness = np.array([size], dtype=float)
+path_length = np.array([size], dtype=float)
+r_paths = [] * size
+g_paths = [] * size
+for i in range(size):
+    if args.file_name is not None:
         print(". . . Loading Model Data")
-        data_path = args.data_path + "_" + i + ".csv"
+        data_path = args.file_name + "_" + str(i) + ".csv"
         print(". . . Loading File ", data_path)
         data = pd.read_csv(data_path)
     else:
@@ -53,6 +53,8 @@ for i in range(args.episodes + 1):
     pp_smooth = 0
     pp_length = 0
     for j in range(1, len(np.asarray(data['Path_Taken']))):
+        print("Path Taken : " + data['Path_Taken'][j])
+        print("Path Generated : " + data['Path_Generated'][j])
         r_path.append(np.fromstring(data['Path_Taken'][j].strip('[]'), sep=','))
         g_path.append(np.fromstring(data['Path_Generated'][j].strip('[]'), sep=','))
         r_paths[i].append(r_path[-1])

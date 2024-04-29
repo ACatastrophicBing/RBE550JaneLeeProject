@@ -189,14 +189,16 @@ if __name__ == "__main__":
         map = sim.map
         controller = None
 
-        start = time.process_time_ns()
+        ts = time.process_time_ns()
         run_sim(env, lambda t, robot: act(t, robot), total_time=time_allocated, dt_display=50, disp=False)
         end = time.process_time_ns()
-        total_time = end - start
+        total_time = end - ts
+        failed_straightup = False
 
         if tick_time_run == 0:
             print("[MAIN] Robot FAILED to reach goal")
             tick_time_run = time_allocated
+            failed_straightup = True
         else:
             print("[MAIN] The time taken to run and reach the goal successfully was ", tick_time_run, " seconds of simulated environment time")
 
@@ -223,10 +225,10 @@ if __name__ == "__main__":
                 p1 = np.asarray(robot_path[k]) - np.asarray(robot_path[k-1]) # Yes this could be quicker but also, no
                 p2 = np.asarray(robot_path[k+1]) - np.asarray(robot_path[k])
                 angle_sum = angle_sum + abs(math.atan2(p2[1]-p1[1], p2[0]-p1[0]))
-        if len(robot_path) != 0:
-            smoothness = angle_sum / len(robot_path)
-        else:
+        if failed_straightup:
             smoothness = 0
+        else:
+            smoothness = angle_sum / len(robot_path)
 
         data_file_name = data_file_name + "_" + str(i) + ".csv"
         print("[MAIN] Saving ", data_file_name)
@@ -236,7 +238,7 @@ if __name__ == "__main__":
                              'Robot_Distance_Travelled', 'Path_Smoothness', 'Path_Taken', 'Path_Generated'])
             writer.writerow([total_time, tick_time_run, path_planning_time, dist_travelled, smoothness, 0, 0])
             for j in range(0, len(robot_path)):
-                writer.writerow([0, 0, 0, 0, robot_path[j], path_generated[j]])
+                writer.writerow([0, 0, 0, 0, 0, robot_path[j], path_generated[j]])
 
 
 # NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))

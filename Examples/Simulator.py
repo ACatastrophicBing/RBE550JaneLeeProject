@@ -308,9 +308,9 @@ class Map:
             # I'm just using it because it was useful to do when debugging all the other code.
             self.PRM.sample(n_pts=1000, sampling_method="random")
             self.PRM.search(self.robot_position, self.goal)
-            print(self.PRM.path)
+            # print(self.PRM.path)
             if self.PRM.path:
-                print("[MAP] Path Planning PRM")
+                # print("[MAP] Path Planning PRM")
                 node_path = self.PRM.path
                 path =  np.zeros([len(node_path), 2]) # Removes the START node
                 path[0] = np.divide(np.asarray(self.robot_position, dtype=float), self.definition_conversion)
@@ -505,6 +505,7 @@ class Simulator:
         # ADDED FRICITION HERE
         dampling = 0.5
 
+        print(self.start)
         box1 = Box(robot, x=self.start[0], y=self.start[1]-0.25, width=0.5, height=0.5, name="right", linearDamping=dampling )
         box2 = Box(robot, x=self.start[0], y=self.start[1]+0.25, width=0.5, height=0.5, name="left", linearDamping=dampling)
 

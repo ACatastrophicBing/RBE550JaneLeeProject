@@ -4,13 +4,8 @@ A simple robot simulator based on Box2D and visualization with matplotlib.
 
 ## Install
 
-from Anaconda prompt do:
-
-```
-pip install Box2d
-
-pip install "git+git://github.com/bblais/RobotSim373" --upgrade
-```
+This Project was written for Python 3.8.18
+You need the following packages: Box2D, matplotlib, numpy, pandas, scipy, networkx, skimage
 
 ## Run
 in your conda environment in this folder, run the following : 
@@ -26,8 +21,8 @@ The following flags can also be called when running this line :
 --update_on_map_update : The robot will update its path when the global map updates, this does not mean the robot is using global knowledge
 --iterations : The number of times you want to run this specific experiment, this is for data collection purposes, and when collecting data, DO NOT VISUALIZE THE SIM OR PATHS GENERATED
 
-TODO :
+## Run post_processing_plotting.py (Data Plotting)
+Run this file from the terminal following a similar formatting : 
+python post_processing_plotting.py Data_Recording_Folder/NameOfFileButStopBeforeThe_BeforeTheNumber --episodes num_episodes_you_want_plotted
 
-Measurement code for ranking algorithms (Chandler)
-
-Run all algorithms we have and track the data (Can / Tim)
+This will plot file 0 or all files with the name up to episode num_episodes
