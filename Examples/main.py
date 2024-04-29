@@ -161,7 +161,7 @@ if __name__ == "__main__":
 
     wrld_size = [50,50]
     # NOTE : THIS IS IMPORTANT : THIS IS THE PLACE WHERE YOU CHANGE WHERE TO PUT THE GOAL
-    goal = [40,10]
+    goal = [40,15]
 
     env = Environment(wrld_size[0], wrld_size[1])
     num_robots = 1
@@ -171,7 +171,7 @@ if __name__ == "__main__":
     robot_path = []
     path_generated = []
     path_planning_time, map_processing_time, tick_time_run = 0, 0, 0
-    sim = Simulator(env, goal, rand_obstacles=20, wrld_size=wrld_size, num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge, use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=1)
+    sim = Simulator(env, goal, c_space_dilation=0.1,rand_obstacles=20, wrld_size=wrld_size, num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge, use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=1)
     map = sim.map
     controller = None
 

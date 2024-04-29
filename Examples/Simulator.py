@@ -14,6 +14,8 @@ from skimage.morphology import isotropic_dilation
 from scipy import spatial
 import networkx as nx
 from RRT import RRT
+from informed_RRT import informed_RRT
+
 class Map:
     def __init__(self, env, robot, goal, boxes=[], humans=[],definition=[100,100], wrld_size=[50,50], lidar_range=5.0,
                  map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0, human_radius = 0.5,
@@ -355,6 +357,47 @@ class Map:
                 else:
                     print("No path found using", algorithm)
                     return None
+                
+        elif algorithm == "informed_RRT_star":
+            map_array = np.logical_not(self.robot_cspace).astype(int)
+            print('Starting Informed RRT*')
+            rrt = informed_RRT(map_array, self.robot_position, self.goal)
+            rrt.informed_RRT_star(n_pts=6000, neighbor_size=50)
+
+            if rrt.found:
+                print('Path found by Informed RRT*')
+                path = []
+                current = rrt.goal
+                while current.parent is not None:
+                    path.append((current.row, current.col))
+                    current = current.parent
+                path.append((current.row, current.col))  
+                path.reverse()  
+
+                print('Path:', path)
+                rrt_height = 1000 
+                sim_width, sim_height = 50, 50
+
+
+                    # This is chanching the map to world
+                def transform_coordinates(rrt_point, rrt_height, sim_width, sim_height):
+                        # invert y 
+                    sim_x = rrt_point[1] * sim_width / rrt_height
+                    sim_y = (rrt_height - rrt_point[0]) * sim_height / rrt_height
+                    return sim_x, sim_y
+
+                transformed_path = [transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]               
+                print('Transformed Path:', transformed_path)
+
+                return transformed_path
+            else:
+                print("No path found using Informed RRT*")
+                return None
+
+        else:
+                print("Algorithm doesn't match the given input")
+                return None
+
         if algorithm == "AD*" and self.robot_flag:
             path = None
         return path
