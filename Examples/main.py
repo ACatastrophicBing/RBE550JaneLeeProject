@@ -143,16 +143,17 @@ def act(t, robot):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("recording_path", default="Data")
-    parser.add_argument("--visualize", action='store_true', default=False)
-    parser.add_argument("--path_planner", default='PRM')
+    parser.add_argument("--recording_path", default="Data")
+    parser.add_argument("--visualize", action='store_true', default=True)
+    parser.add_argument("--path_planner", default='DStar')
     parser.add_argument("--dont_init_with_global_knowledge", action='store_false', default=True)
     parser.add_argument("--use_global_knowledge", action='store_true', default=False)
-    parser.add_argument("--update_on_robot_movement", action='store_true', default=False)
+    parser.add_argument("--update_on_robot_movement", action='store_true', default=True)
     parser.add_argument("--update_on_map_update", action='store_true', default=False)
     # parser.add_argument("--any_more_things_you_may_need",default = False)
 
     args = parser.parse_args()
+    # args = ['--visualize', '--path_planner DStar', 'Data']
     path_planner = args.path_planner
     update_when_robot_moves = args.update_on_robot_movement
     update_when_map_updates = args.update_on_map_update
@@ -170,7 +171,7 @@ if __name__ == "__main__":
     robot_path = []
     path_generated = []
     path_planning_time, map_processing_time, tick_time_run = 0, 0, 0
-    sim = Simulator(env, goal, rand_obstacles=20, wrld_size=wrld_size, num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge, use_global_knowledge=args.use_global_knowledge, visualize=visualize)
+    sim = Simulator(env, goal, rand_obstacles=20, wrld_size=wrld_size, num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge, use_global_knowledge=args.use_global_knowledge, visualize=visualize,map_selector=0)
     map = sim.map
     controller = None
 

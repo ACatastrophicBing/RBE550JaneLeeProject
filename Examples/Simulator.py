@@ -334,12 +334,26 @@ class Map:
                 path = self.ADStar.onFlag(self.robot_cspace)
             
         if algorithm == "DStar":
+            print("Calc DSTAR")
             if self.path_init:
                 self.DStar = DStar(self.robot_cspace, self.robot_cspace, self.robot_position, self.goal)
                 path = self.DStar.onFlag(self.robot_cspace)
                 self.path_init = False
             else:
                 path = self.DStar.onFlag(self.robot_cspace)
+            if self.DStar.path:
+                node_path = self.DStar.path
+                path =  np.zeros([len(node_path), 2]) # Removes the START node
+                path[0] = np.divide(np.asarray(self.robot_position, dtype=float), self.definition_conversion)
+                for i in range(1, len(node_path)):
+                    if isinstance(node_path[i], int):
+                        path[i] = np.divide(np.asarray(self.PRM.samples[node_path[i]], dtype=float), self.definition_conversion)
+                    else:
+                        path[i] = np.divide(np.asarray(self.goal, dtype=float), self.definition_conversion)
+                if self.visualize:
+                    print("[MAP] Visualizing Map")
+                    self.DStar.draw_path(self.robot_map)
+
 
         if algorithm == "DStarLite":
             if self.path_init:
@@ -354,7 +368,7 @@ class Map:
 class Simulator:
     def __init__(self, env, goal, rand_obstacles=0, map_selector=None,wrld_size=[50,50], num_humans=0,
                  lidar_range=5.0, map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0,
-                 human_radius = 0.5, use_global_knowledge = False, definition = [1000,1000], human_friction=0.7, visualize=False):
+                 human_radius = 0.5, use_global_knowledge = False, definition = [100,100], human_friction=0.7, visualize=False):
         self.env = env
         self.robots = []
         self.obstacles = []

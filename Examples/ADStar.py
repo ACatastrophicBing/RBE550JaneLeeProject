@@ -19,6 +19,13 @@ class Node:
         self.g = math.inf
         self.rhs = math.inf
         self.visited = False
+    
+    def __lt__(self, other):
+        # Define a primary and secondary comparison to avoid ties; adjust based on your needs
+        if (self.g, self.row, self.col) < (other.g, other.row, other.col):
+            return -1
+        else:
+            return 1
 
 class AnytimeDynAStar:
     def __init__(self, grid, dynamic_grid, start, goal):
@@ -117,8 +124,10 @@ class AnytimeDynAStar:
         self.insertOpen(node, (k1, k2))
 
     def removeOpen(self, node):
+    # Efficient removal from the open list
         self.openList = [(k1, k2, n) for k1, k2, n in self.openList if n != node]
         heapq.heapify(self.openList)
+
 
     def removeInconsis(self, node):
         self.incosisList = [(k1, k2, n) for k1, k2, n in self.incosisList if n != node]
@@ -186,17 +195,20 @@ class AnytimeDynAStar:
         return path
     
     def updateState(self, node):
+        in_open_list = any(node == n for _, _, n in self.openList)
         if not node.visited:
             node.g = math.inf
         if node != self.goal:
             node.rhs = self.calc_rhs(node)
-        if node in self.openList:
+        if in_open_list:
             self.removeOpen(node)
-        if (self.calc_g(node) != self.calc_rhs(node)):
+        if node.g != node.rhs:
             if node not in self.closedList:
                 self.insertOpen(node, self.calculateKey(node))
             else:
-                self.incosisList.append(node)
+                if node not in self.incosisList:
+                    self.incosisList.append((self.calculateKey(node), node))
+
 
     def computeShortestPath(self):
         while (self.compareKeys(self.topKey(), self.calculateKey(self.start)) == -1) or (self.calc_rhs(self.start) != self.calc_g(self.start)):
@@ -215,6 +227,7 @@ class AnytimeDynAStar:
                     if not neighbor.is_obs:
                         self.updateState(neighbor)
                 self.updateState(node)
+
 
     def onFlag(self, dynamic_grid):
         self.dynamic_grid = dynamic_grid

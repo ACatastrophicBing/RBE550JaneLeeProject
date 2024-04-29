@@ -43,6 +43,7 @@ class DStar:
         
         self.insert(self.goal, self.goal.h)
         while len(self.open) != 0 and self.start.tag != "CLOSED":    
+            print("Process State")
             self.process_state()
         self.get_backpointer_list(self.start)
 
@@ -50,8 +51,7 @@ class DStar:
     def instantiate_node(self, point):
         ''' Instatiate a node given point (x, y) '''
         row, col = point
-        node = Node(row, col, not self.grid[row][col], 
-                              not self.dynamic_grid[row][col])
+        node = Node(row, col, self.grid[row][col], self.dynamic_grid[row][col])
         return node
 
 
@@ -154,6 +154,7 @@ class DStar:
         neighbors = self.get_neighbors(node)
 
         if kOld<node.h:
+            print("Raise")
             for neighbor in neighbors:
                 if neighbor.h<=kOld and (node.h>(neighbor.h+self.cost(neighbor,node))):
                     node.parent=neighbor
@@ -161,11 +162,13 @@ class DStar:
 
         # If node k is the same as h (LOWER)
         if kOld == node.h:
+            print("Lower")
             for neighbor in neighbors:
                 if neighbor.tag == "NEW" or neighbor.parent == node and neighbor.h != (node.h + self.cost(neighbor,node)) or neighbor.parent != node and neighbor.h > node.h + self.cost(node, neighbor):
                     neighbor.parent = node
                     self.insert(neighbor, node.h + self.cost(node, neighbor))
         else:
+            print("else")
             for neighbor in neighbors:
                 if neighbor.tag == "NEW" or neighbor.parent == node and neighbor.h != (node.h + self.cost(neighbor, node)):
                     neighbor.parent = node
@@ -293,7 +296,7 @@ class DStar:
             self.repair_replan(repairNode)
             self.get_backpointer_list(repairNode)
             repairNode = repairNode.parent
-        
+        print("path: ", self.path)
         return self.path
 
 
@@ -362,48 +365,49 @@ class DStar:
         ''' Keep tracing back to get the path from a given node to goal '''
         # Assume there is a path from start to goal
         cur_node = node
-        self.path = [cur_node]
+        self.path = [(cur_node.row,cur_node.col)]
         while cur_node != self.goal and \
               cur_node != None and \
               not cur_node.is_obs:
             # trace back
             cur_node = cur_node.parent
             # add to path
-            self.path.append(cur_node)
+            self.path.append((cur_node.row, cur_node.col))
 
         # If there is not such a path
-        if cur_node != self.goal:
-            self.path = []
+        # if cur_node != self.goal:
+        #     self.path = []
 
 
-    # def draw_path(self, grid, title="Path"):
-    #     '''Visualization of the found path using matplotlib'''
-    #     fig, ax = plt.subplots(1)
-    #     ax.margins()
+    def draw_path(self, grid, title="Path"):
+        '''Visualization of the found path using matplotlib'''
+        fig, ax = plt.subplots(1)
+        ax.margins()
 
-    #     # Draw map
-    #     row = len(grid)     # map size
-    #     col = len(grid[0])  # map size
-    #     for i in range(row):
-    #         for j in range(col):
-    #             if not self.grid_node[i][j].is_obs: \
-    #                 ax.add_patch(Rectangle((j-0.5, i-0.5),1,1,edgecolor='k',facecolor='w'))  # free space
-    #             else:    
-    #                 ax.add_patch(Rectangle((j-0.5, i-0.5),1,1,edgecolor='k',facecolor='k'))  # obstacle      
+        # Draw map
+        row = len(grid)     # map size
+        col = len(grid[0])  # map size
+        for i in range(row):
+            for j in range(col):
+                if not self.grid_node[i][j].is_obs: \
+                    ax.add_patch(Rectangle((j-0.5, i-0.5),1,1,edgecolor='k',facecolor='w'))  # free space
+                else:    
+                    ax.add_patch(Rectangle((j-0.5, i-0.5),1,1,edgecolor='k',facecolor='k'))  # obstacle      
                     
-    #     # Draw path
-    #     for node in self.path:
-    #         row, col = node.row, node.col
-    #         # print((row,col))
-    #         ax.add_patch(Rectangle((col-0.5, row-0.5),1,1,edgecolor='k',facecolor='b'))        # path
-    #     if len(self.path) != 0:
-    #         start, end = self.path[0], self.path[-1]
-    #     else:
-    #         start, end = self.start, self.goal
-    #     ax.add_patch(Rectangle((start.col-0.5, start.row-0.5),1,1,edgecolor='k',facecolor='g'))  # start
-    #     ax.add_patch(Rectangle((end.col-0.5, end.row-0.5),1,1,edgecolor='k',facecolor='r'))  # goal
-    #     # Graph settings
-    #     plt.title(title)
-    #     plt.axis('scaled')
-    #     plt.gca().invert_yaxis()
-    #     plt.show()
+        # Draw path
+        for node in self.path:
+            row = node[0]
+            col = node[1]
+            # print((row,col))
+            ax.add_patch(Rectangle((col-0.5, row-0.5),1,1,edgecolor='k',facecolor='b'))        # path
+        if len(self.path) != 0:
+            start, end = self.path[0], self.path[-1]
+        else:
+            start, end = self.start, self.goal
+        ax.add_patch(Rectangle((start[1]-0.5, start[0]-0.5),1,1,edgecolor='k',facecolor='g'))  # start
+        ax.add_patch(Rectangle((end[1]-0.5, end[0]-0.5),1,1,edgecolor='k',facecolor='r'))  # goal
+        # Graph settings
+        plt.title(title)
+        plt.axis('scaled')
+        plt.gca().invert_yaxis()
+        plt.show(block = False)
