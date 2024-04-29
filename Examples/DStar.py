@@ -29,10 +29,25 @@ class DStar:
             for col in range(size_col):
                 self.grid_node[row][col] = self.instantiate_node((row, col))
 
-        # The start node
-        self.start = self.grid_node[start[0]][start[1]]
-        # The goal node
-        self.goal = self.grid_node[goal[0]][goal[1]]
+        # Old points for the start and goal 
+        # # The start node
+        # self.start = self.grid_node[start[0]][start[1]]
+        # # The goal node
+        # self.goal = self.grid_node[goal[0]][goal[1]]
+
+        grid_width = 50
+        start_row, start_col = start[0], start[1] 
+        new_start = self.rotate_start_position(start_row, start_col, grid_width)
+
+        end_row, end_col = goal[0], goal[1] 
+        new_goal = self.rotate_start_position(end_row, end_col, grid_width)
+
+        # update start and end 
+        self.start = self.grid_node[new_start[0]][new_start[1]]
+        self.goal = self.grid_node[new_goal[0]][new_goal[1]]
+
+
+
         self.goal.h = 0
 
         # List
@@ -43,11 +58,15 @@ class DStar:
         
         self.insert(self.goal, self.goal.h)
         while len(self.open) != 0 and self.start.tag != "CLOSED":    
-            print("Process State")
+            # print("Process State")
             self.process_state()
         self.get_backpointer_list(self.start)
 
-
+    def rotate_start_position(self,start_row, start_col, grid_width):
+        new_start_row = start_col
+        new_start_col = grid_width - 1 - start_row
+        return new_start_col, new_start_row
+    
     def instantiate_node(self, point):
         ''' Instatiate a node given point (x, y) '''
         row, col = point
@@ -238,13 +257,13 @@ class DStar:
                 # using self.modify_cost
         changed_list = np.argwhere(np.logical_xor(self.grid, self.dynamic_grid))
         for node_pos in changed_list:
-            if self.dynamic_grid[node_pos]:
+            if self.dynamic_grid[node_pos[0],node_pos[1]] == 1:
                 self.dynamic_grid[node_pos].is_obs = True
                 secondaryNeighbors = self.get_neighbors(self.dynamic_grid[node_pos])
                 for secondaryNeighbor in secondaryNeighbors:
                     self.modify_cost(obstacle_node=self.dynamic_grid[node_pos], neighbor=secondaryNeighbor)
             else:
-                self.dynamic_grid[node_pos].is_obs = False
+                self.dynamic_grid[node_pos[0],node_pos[1]].is_obs = False
     
         # neighbors = self.get_neighbors(node)
         # for neighbor in neighbors:
@@ -281,13 +300,6 @@ class DStar:
         node.tag = "OPEN"
         self.open.add(node)
 
-    # def firstPass(self): # Moved to __init__
-    #     self.start = self.robot_position
-    #     self.insert(self.goal, self.goal.h)
-    #     while len(self.open) != 0 and self.start.tag != "CLOSED":    
-    #         self.process_state()
-    #     self.get_backpointer_list(self.start)
-
     def onFlag(self, dynamic_grid):
         self.dynamic_grid = np.rot90(dynamic_grid)
         repairNode = self.start
@@ -297,69 +309,7 @@ class DStar:
             self.get_backpointer_list(repairNode)
             repairNode = repairNode.parent
         print("path: ", self.path)
-        return self.path
-
-
-    # def run(self):
-    #     ''' Run D* algorithm
-    #         Perform the first search from goal to start given the pre-known grid
-    #         Check from start to goal to see if any change happens in the grid, 
-    #         modify the cost and replan in the new map
-    #     '''
-    #     #### TODO ####
-    #     # Search from goal to start with the pre-known map
-        
-    #         # Process until open set is empty or start is reached
-    #         # using self.process_state()
-    #     self.insert(self.goal, self.goal.h)
-    #     while len(self.open) != 0 and self.start.tag != "CLOSED":    
-    #         self.process_state()
-
-    #     # Visualize the first path if found
-    #     self.get_backpointer_list(self.start)
-    #     # for node in self.path:
-    #     #     print((node.h, node.k))
-    #     self.draw_path(self.grid, "Path in static map")
-    #     if self.path == []:
-    #         print("No path is found")
-    #         return
-
-    #     # Start from start to goal
-    #     # Update the path if there is any change in the map
-        
-    #         # Check if any repair needs to be done
-    #         # using self.prepare_repair
-
-    #         # Replan a path from the current node
-    #         # using self.repair_replan
-
-    #         # Get the new path from the current node
-    #     repairNode = self.start
-    #     while repairNode is not self.goal:
-    #         self.prepare_repair(repairNode)
-    #         # for node in self.open: print(node.row, node.col, node.h, node.k)
-    #         self.repair_replan(repairNode)
-    #         # print("Repair")
-    #         # for node in self.open: print(node.row, node.col, node.h, node.k)
-    #         self.get_backpointer_list(repairNode)
-
-    #         # print("New path")
-    #         # for node in self.path:
-    #         #     print((node.row, node.col))
-    #         # Uncomment this part when you have finished the previous part
-    #         # for visualizing each move and replanning
-            
-    #         # Visualize the path in progress
-    #         self.draw_path(self.dynamic_grid, "Path in progress")
-
-    #         if self.path == []:
-    #             print("No path is found")
-    #             return
-            
-    #         # Get the next node to continue
-    #         repairNode = repairNode.parent
-    #     #### TODO END ####
-                
+        return self.path   
 
     def get_backpointer_list(self, node):
         ''' Keep tracing back to get the path from a given node to goal '''
@@ -396,14 +346,16 @@ class DStar:
                     
         # Draw path
         for node in self.path:
-            row = node[0]
-            col = node[1]
+            row = node[1]
+            col = node[0]
             # print((row,col))
             ax.add_patch(Rectangle((col-0.5, row-0.5),1,1,edgecolor='k',facecolor='b'))        # path
         if len(self.path) != 0:
             start, end = self.path[0], self.path[-1]
         else:
             start, end = self.start, self.goal
+        ax.add_patch(Rectangle((self.start.row-0.5, self.start.col-0.5),1,1,edgecolor='k',facecolor='b'))
+        ax.add_patch(Rectangle((self.goal.row-0.5, self.goal.col-0.5),1,1,edgecolor='k',facecolor='b'))
         ax.add_patch(Rectangle((start[1]-0.5, start[0]-0.5),1,1,edgecolor='k',facecolor='g'))  # start
         ax.add_patch(Rectangle((end[1]-0.5, end[0]-0.5),1,1,edgecolor='k',facecolor='r'))  # goal
         # Graph settings

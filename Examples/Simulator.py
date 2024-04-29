@@ -19,7 +19,7 @@ from scipy import spatial
 import networkx as nx
 
 class Map:
-    def __init__(self, env, robot, goal, boxes=[], humans=[],definition=[100,100], wrld_size=[50,50], lidar_range=5.0,
+    def __init__(self, env, robot, goal, boxes=[], humans=[],definition=[1000,1000], wrld_size=[50,50], lidar_range=5.0,
                  map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0, human_radius = 0.5,
                  use_global_knowledge = False, max_obj_size=12, visualize = False):
         self.env = env               # The environment we are in
@@ -458,12 +458,12 @@ class Simulator:
         # ADDED FRICITION HERE
         dampling = 0.5
 
-        box1 = Box(robot, x=2, y=10, name="right", linearDamping=dampling )
-        box2 = Box(robot, x=2, y=11, name="left",linearDamping=dampling)
+        box1 = Box(robot, x=2, y=40, name="right", linearDamping=dampling )
+        box2 = Box(robot, x=2, y=41, name="left",linearDamping=dampling)
 
         connect(box1, box2, "weld")
 
-        disk1 = Disk(robot, x=2, y=10.5, radius=1, name="center")
+        disk1 = Disk(robot, x=2, y=40.5, radius=1, name="center")
 
         connect(disk1, box1, "distance")
         connect(disk1, box2, "distance")
