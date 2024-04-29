@@ -18,7 +18,7 @@ from scipy import spatial
 import networkx as nx
 from RRT import RRT 
 from informed_RRT import informed_RRT
-
+from Astar import *
 
 class Map:
     def __init__(self, env, robot, boxes, humans=[],definition=[100,100], wrld_size=[24,24], lidar_range=5.0,
@@ -369,9 +369,36 @@ class Map:
             else:
                 print("No path found using Informed RRT*")
                 return None
+            # Convert map to a format suitable for Dijkstra/A*, where obstacles are 1 and free space is 0
+    
+        if algorithm == "dijkstra":
+            map_array = np.logical_not(self.robot_cspace).astype(int)
+
+            map_array_inverted = invert_grid(map_array.tolist())  # Make sure to convert to list if your pathfinding functions expect a list
+
+            path, steps = dijkstra(map_array, start, goal)
+            print(f"Dijkstra found a path in {steps} steps.")
+            return path
+
+        if algorithm == "astar":
+            map_array = np.logical_not(self.robot_cspace)
+            map_array_inverted = invert_grid(map_array.tolist())  # Make sure to convert to list if your pathfinding functions expect a list
+
+            path, steps = astar(map_array_inverted, start, goal)
+            print('start', start)
+            print('goal', goal)
+
+            print('path reveresed',path)
+            print(f"A* found a path in {steps} steps.")
+            rrt_height = 1000 
+            sim_width, sim_height = 50, 50
+            transformed_path = [self.transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]
+            print('Transformed path:', transformed_path)
+            return transformed_path
+
 
         else:
-                    print("No path found")
+                    print("No path found2")
                     return None
 
 
@@ -380,7 +407,11 @@ class Map:
         
 
     
-
+    def transform_coordinates(rrt_point, rrt_height, sim_width, sim_height):
+                        # invert y 
+                sim_x = rrt_point[1] * sim_width / rrt_height
+                sim_y = (rrt_height - rrt_point[0]) * sim_height / rrt_height
+                return sim_x, sim_y
 
 
     def create_cell_maps(self):
@@ -626,7 +657,7 @@ if __name__ == "__main__":
     num_obstacles = 20
     sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=True ,use_global_knowledge=True)
     map = sim.map
-    waypoints = map.path_plan("informed_RRT_star")
+    waypoints = map.path_plan("astar")
     # waypoints = [(3, 2), (10, 2), (15, 15), (20, 20)]
 
     if waypoints:
