@@ -143,7 +143,7 @@ def act(t, robot):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("recording_path")
+    parser.add_argument("recording_path", default="Data")
     parser.add_argument("--visualize", action='store_true', default=False)
     parser.add_argument("--path_planner", default='PRM')
     parser.add_argument("--dont_init_with_global_knowledge", action='store_false', default=True)
