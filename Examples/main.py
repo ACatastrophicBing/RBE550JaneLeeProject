@@ -165,7 +165,7 @@ if __name__ == "__main__":
     goal = [25,25]
 
     num_robots = 1
-    num_humans = 5
+    num_humans = 0
     num_obstacles = 20
     global tick_time_run, path_planning_time, map_processing_time, robot_path, path_generated
 
@@ -217,6 +217,8 @@ if __name__ == "__main__":
         if args.update_on_map_update:
             data_file_name = data_file_name + "_UpdateOnMapUpdate"
 
+        data_file_name = data_file_name + "_" + str(num_humans) + "humans"
+
         dist_travelled = 0
         angle_sum = 0
         for k in range(len(robot_path) - 1):
@@ -229,6 +231,10 @@ if __name__ == "__main__":
             smoothness = 0
         else:
             smoothness = angle_sum / len(robot_path)
+
+        with open(recording_path + "map_0.csv", 'w+') as output:
+            writer = csv.writer(output)
+            writer.writerow(sim.map.robot_cspace.astype(int))
 
         data_file_name = data_file_name + "_" + str(i) + ".csv"
         print("[MAIN] Saving ", data_file_name)

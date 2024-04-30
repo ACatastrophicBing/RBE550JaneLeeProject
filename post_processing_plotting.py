@@ -6,12 +6,13 @@ import json
 import os
 import argparse
 import pandas as pd
+import csv
 from itertools import chain
 
 parser = argparse.ArgumentParser()
 parser.add_argument("file_name")
 parser.add_argument("--episodes", default=0)
-
+parser.add_argument("--map_path", default=".\Data\map_0.csv")
 
 args = parser.parse_args()
 
@@ -31,6 +32,23 @@ path_smoothness = np.zeros([size], dtype=float)
 path_length = np.zeros([size], dtype=float)
 r_paths = [[]] * size
 g_paths = [[]] * size
+print(". . . Loading Map Data")
+map = []
+with open('.\Data\map_0.csv', 'r') as file:
+    # Create a CSV reader object
+    csv_reader = csv.reader(file)
+
+    # Get the first row from the reader
+    first_row = next(csv_reader)
+
+    # Print the first row columns
+    for column in first_row:
+        row = column.strip('[').strip(']').strip('\n')
+        map.append(np.fromstring(row, sep=' '))
+
+
+map = np.flip(np.asarray(map), axis=1)
+
 for i in range(size):
     if args.file_name is not None:
         print(". . . Loading Model Data")
@@ -52,23 +70,28 @@ for i in range(size):
     g_path = []
     pp_smooth = 0
     pp_length = 0
+    prev_path = [0,0]
     for j in range(1, len(np.asarray(data['Path_Taken']))):
         # print("Path Taken : " + data['Path_Taken'][j])
         # print("Path Generated : " + data['Path_Generated'][j])
-        r_path.append(np.fromstring(data['Path_Taken'][j].strip('[]'), sep=','))
+        r_path.append(np.fromstring(data['Path_Taken'][j].strip('[]'), sep=',') * 20)  # Note the 20 is the map definition / wrld size
+        r_paths[i].append(r_path[-1])
         # print(data['Path_Generated'][j])
         gtemppath = []
         for loc in data['Path_Generated'][j].strip('[[').strip(']]').split(']\r\n ['):
-            gtemppath.append(np.fromstring(loc, sep=' '))
-        g_path.append(np.asarray(gtemppath))
-        r_paths[i].append(r_path[-1])
-        g_paths[i].append(g_path[-1])
-        for k in range(1, len(g_path[j-1])):
-            pp_length = pp_length + math.dist(g_path[j-1][k],g_path[j-1][k-1])
-            if k > 2:
-                p1 = np.asarray(g_path[j-1][k-1]) - np.asarray(g_path[j-1][k - 2])  # Yes this could be quicker but also, no
-                p2 = np.asarray(g_path[j-1][k]) - np.asarray(g_path[j-1][k - 1])
-                pp_smooth = pp_smooth + abs(math.atan2(p2[1]-p1[1], p2[0]-p1[0]))
+            gtemppath.append(np.fromstring(loc, sep=' ') * 20)  # Note the 20 is the map definition / world size
+        # print(gtemppath, prev_path, np.array_equal(gtemppath, prev_path), j)
+        if not np.array_equal(gtemppath, prev_path):
+            prev_path = gtemppath.copy()
+            g_path.append(np.asarray(gtemppath))
+            g_paths[i].append(g_path[-1])
+
+            for k in range(1, len(g_path[j-1])):
+                pp_length = pp_length + math.dist(g_path[j-1][k],g_path[j-1][k-1])
+                if k > 2:
+                    p1 = np.asarray(g_path[j-1][k-1]) - np.asarray(g_path[j-1][k - 2])  # Yes this could be quicker but also, no
+                    p2 = np.asarray(g_path[j-1][k]) - np.asarray(g_path[j-1][k - 1])
+                    pp_smooth = pp_smooth + abs(math.atan2(p2[1]-p1[1], p2[0]-p1[0]))
     path_length[i] = pp_length
     path_smoothness[i] = pp_smooth
 
@@ -90,13 +113,18 @@ robot_travelled_plt = axs0.errorbar(1, mean_rp_length, std_rp_length, linestyle=
 robot_smooth_plt = axs0.errorbar(2, mean_rp_smooth, std_rp_smooth, linestyle='None', marker='^', color='r')
 robot_path_smoothness = axs0.errorbar(3, mean_pp_smooth, std_pp_smooth, linestyle='None', marker='^', color='g')
 
+arr = 1 - map
+img = 255 * np.dstack((arr, arr, arr))
+img_rotated = np.rot90(img, k=1)  # Rotate 90 degrees counterclockwise
+axs1.imshow(img_rotated)
+
 r_paths = np.asarray(r_paths)
 plt_r_path = []
 plt_g_paths = []
 for i in range(size):
-    plt_r_path.append(axs1.plot(r_paths[i, :, 0], r_paths[i, :, 1], color='r', alpha=0.25))
+    plt_r_path.append(axs1.plot(r_paths[i, :, 0], r_paths[i, :, 1], color='r', alpha=0.05))
     for j in range(len(g_paths[i])):
-        plt_g_paths.append(axs1.plot(g_paths[i][j][:, 0], g_paths[i][j][:, 0], color='b', alpha=0.25))
+        plt_g_paths.append(axs1.plot(g_paths[i][j][:, 0], g_paths[i][j][:, 1], color='b', alpha=0.05))
 
 processing_time_plt = axs2.plot(np.linspace(0, size, size), processing_time)   # Milliseconds
 path_processint_time_ply = axs2.plot(np.linspace(0, size, size), pp_time)      # Milliseconds

@@ -459,7 +459,7 @@ class Simulator:
         self.goal = goal
         self.start = start
         for i in range(num_humans):
-            self.humans.append(Disk(self.env, x=Simulator.randbetween(8, 22), y=Simulator.randbetween(8, 22),
+            self.humans.append(Disk(self.env, x=Simulator.randbetween(10, 40), y=Simulator.randbetween(10, 40),
                     radius=0.5, angle=Simulator.randbetween(0, 360), color='red', linearDamping=human_friction))
 
         if map_selector is not None:
