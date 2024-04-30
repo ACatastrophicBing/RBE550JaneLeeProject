@@ -15,6 +15,7 @@ from scipy import spatial
 import networkx as nx
 from RRT import RRT
 from informed_RRT import informed_RRT
+from Astar import *
 
 class Map:
     def __init__(self, env, robot, goal, boxes=[], humans=[],definition=[100,100], wrld_size=[50,50], lidar_range=5.0,
@@ -326,10 +327,16 @@ class Map:
                 rrt = RRT(self.robot_cspace, self.robot_position, self.goal)
                 if algorithm == "RRT":
                     print('Starting RRT')
-                    rrt.RRT(n_pts=5000)  
+                    rrt.RRT(n_pts=14000)  
+                    if self.visualize:
+                        print("[MAP] Visualizing Map")
+                        rrt.draw_map()
                 else:
                     print('Starting RRT*')
                     rrt.RRT_star(n_pts=5000, neighbor_size=20)  
+                    if self.visualize:
+                        print("[MAP] Visualizing Map")
+                        rrt.draw_map()
                 if rrt.found:
                     # print('Path found')
                     path = []
@@ -343,9 +350,7 @@ class Map:
                     # convert map 
                     rrt_height = 1000 
                     sim_width, sim_height = 50, 50
-                    if self.visualize:
-                        print("[MAP] Visualizing Map")
-                        rrt.draw_map()
+                    
 
 
                     # This is chanching the map to world
@@ -402,14 +407,47 @@ class Map:
                 print("No path found using Informed RRT*")
                 return None
 
+
+        
+        if algorithm == "dijkstra":
+            map_array = np.logical_not(self.robot_cspace)
+            map_array_inverted = invert_grid(map_array.tolist()) 
+
+            path, steps = dijkstra(map_array_inverted, self.robot_position, self.goal)
+
+            rrt_height = 1000 
+            sim_width, sim_height = 50, 50
+            transformed_path = [self.transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]
+            print(f"Dijkstra found a path in {steps} steps.")
+            print('Transformed path:', transformed_path)
+
+            return transformed_path
+
+        if algorithm == "astar":
+            map_array = np.logical_not(self.robot_cspace)
+            map_array_inverted = invert_grid(map_array.tolist()) 
+
+            path, steps = astar(map_array_inverted, self.robot_position, self.goal)
+            print('path reveresed',path)
+            print(f"A* found a path in {steps} steps.")
+            rrt_height = 1000 
+            sim_width, sim_height = 50, 50
+            transformed_path = [self.transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]
+            print('Transformed path:', transformed_path)
+            return transformed_path
+        
         else:
                 print("Algorithm doesn't match the given input")
                 return None
-
         if algorithm == "AD*" and self.robot_flag:
             path = None
         return path
 
+    def transform_coordinates(self,rrt_point, rrt_height, sim_width, sim_height):
+                            # invert y 
+                    sim_x = rrt_point[1] * sim_width / rrt_height
+                    sim_y = (rrt_height - rrt_point[0]) * sim_height / rrt_height
+                    return sim_x, sim_y
 
 class Simulator:
     def __init__(self, env, start, goal, rand_obstacles=0, map_selector=None,wrld_size=[50,50], num_humans=0,
@@ -503,7 +541,7 @@ class Simulator:
     def build(self, robot):
         # TODO : Generate random positions of robots that don't overlap with other robots
         # ADDED FRICITION HERE
-        dampling = 0.5
+        dampling = 1.3
 
         print(self.start)
         box1 = Box(robot, x=self.start[0], y=self.start[1]-0.25, width=0.5, height=0.5, name="right", linearDamping=dampling )

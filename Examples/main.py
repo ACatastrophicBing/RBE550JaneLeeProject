@@ -37,7 +37,7 @@ class TrajectoryController:
         dy = target_y - robot['center'].y
         distance = np.sqrt(dx ** 2 + dy ** 2)
 
-        if distance < 3:  # update to next waypoint
+        if distance < 2:  # update to next waypoint
             self.current_waypoint_index += 1
             if self.current_waypoint_index >= len(self.waypoints):
                 self.reached_destination = True
@@ -93,10 +93,10 @@ def act(t, robot):
 
     target_x, target_y = target
 
-    base_speed = 0.6
+    base_speed = 0.4
     base_turn_speed = 0.2
     angle_tolerance = 5
-    Kp_distance = 0.02
+    Kp_distance = 0.05
     Kp_angle = 0.05
     robot_to_target = 1  # Distance threshold to be considered "close" to the target
 
@@ -125,11 +125,12 @@ def act(t, robot):
             robot['left'].F = -turn_direction * turn_speed
             robot['right'].F = turn_direction * turn_speed
         else:  # Move forward
+            print('speed', speed)
             robot['left'].F = speed
             robot['right'].F = speed
 
     # Stop when you are close by
-    if distance_to_target < 3:
+    if distance_to_target < 1:
         robot['left'].F = 0
         robot['right'].F = 0
 
@@ -185,12 +186,12 @@ if __name__ == "__main__":
 
         sim = Simulator(env, start, goal, c_space_dilation=dilation, rand_obstacles=20, wrld_size=wrld_size,
                         num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge,
-                        use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=1)
+                        use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=0)
         map = sim.map
         controller = None
 
         ts = time.process_time_ns()
-        run_sim(env, lambda t, robot: act(t, robot), total_time=time_allocated, dt_display=50, disp=False)
+        run_sim(env, lambda t, robot: act(t, robot), total_time=time_allocated, dt_display=5, disp=True)
         end = time.process_time_ns()
         total_time = end - ts
         failed_straightup = False
