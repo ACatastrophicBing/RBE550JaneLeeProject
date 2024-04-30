@@ -61,7 +61,7 @@ for i in range(size):
 
     simulation_world_time[i] = data['Simulation_World_Time'][0]
     if simulation_world_time[i] == 0 or simulation_world_time[i] == 400:
-        success[i] = 1
+        success[i] = 0
     robot_smoothness[i] = data['Path_Smoothness'][0]
     processing_time[i] = data['Tot_Processing_Time'][0]
     pp_time[i] = data['Path_Planning_Time'][0]
@@ -103,15 +103,17 @@ mean_rp_length = np.mean(distance_travelled)
 mean_pp_smooth = np.mean(path_smoothness)
 mean_rp_smooth = np.mean(robot_smoothness)
 
-fig, axs = plt.subplots(2,2)
+fig, axs = plt.subplots(3,2)
 axs0 = axs[0,0]
 axs1 = axs[0,1]
 axs2 = axs[1,0]
 axs3 = axs[1,1]
+axs4 = axs[2,0]
 
-robot_travelled_plt = axs0.errorbar(1, mean_rp_length, std_rp_length, linestyle='None', marker='^', color='b')
-robot_smooth_plt = axs0.errorbar(2, mean_rp_smooth, std_rp_smooth, linestyle='None', marker='^', color='r')
-robot_path_smoothness = axs0.errorbar(3, mean_pp_smooth, std_pp_smooth, linestyle='None', marker='^', color='g')
+robot_travelled_plt = axs0.errorbar(1, mean_rp_length, std_rp_length, linestyle='None', marker='o', color='b')
+success_plt = axs4.errorbar(2, np.mean(success), np.std(success), linestyle='None', marker='o', color='g')
+robot_smooth_plt = axs3.errorbar(2, mean_rp_smooth, std_rp_smooth, linestyle='None', marker='^', color='r')
+robot_path_smoothness = axs3.errorbar(3, mean_pp_smooth, std_pp_smooth, linestyle='None', marker='^', color='g')
 
 arr = 1 - map
 img = 255 * np.dstack((arr, arr, arr))
@@ -122,9 +124,9 @@ r_paths = np.asarray(r_paths)
 plt_r_path = []
 plt_g_paths = []
 for i in range(size):
-    plt_r_path.append(axs1.plot(r_paths[i, :, 0], r_paths[i, :, 1], color='r', alpha=0.05))
+    plt_r_path.append(axs1.plot(r_paths[i, :, 0], r_paths[i, :, 1], color='r', alpha=0.01))
     for j in range(len(g_paths[i])):
-        plt_g_paths.append(axs1.plot(g_paths[i][j][:, 0], g_paths[i][j][:, 1], color='b', alpha=0.05))
+        plt_g_paths.append(axs1.plot(g_paths[i][j][:, 0], g_paths[i][j][:, 1], color='b', alpha=0.01))
 
 processing_time_plt = axs2.plot(np.linspace(0, size, size), processing_time)   # Milliseconds
 path_processint_time_ply = axs2.plot(np.linspace(0, size, size), pp_time)      # Milliseconds
