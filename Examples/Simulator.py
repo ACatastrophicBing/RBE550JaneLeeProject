@@ -323,7 +323,7 @@ class Map:
             if self.visualize:
                 print("[MAP] Visualizing Map")
                 self.PRM.draw_map()
-        elif algorithm == "RRT" or algorithm == "RRT*":
+        elif algorithm == "RRT" or algorithm == "RRTStar":
                 rrt = RRT(self.robot_cspace, self.robot_position, self.goal)
                 if algorithm == "RRT":
                     print('Starting RRT')
@@ -332,7 +332,7 @@ class Map:
                         print("[MAP] Visualizing Map")
                         rrt.draw_map()
                 else:
-                    print('Starting RRT*')
+                    print('Starting RRTStar')
                     rrt.RRT_star(n_pts=5000, neighbor_size=20)  
                     if self.visualize:
                         print("[MAP] Visualizing Map")
@@ -435,12 +435,10 @@ class Map:
             transformed_path = [self.transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]
             print('Transformed path:', transformed_path)
             return transformed_path
-        
-        else:
-                print("Algorithm doesn't match the given input")
-                return None
+
         if algorithm == "AD*" and self.robot_flag:
             path = None
+
         return path
 
     def transform_coordinates(self,rrt_point, rrt_height, sim_width, sim_height):
@@ -452,7 +450,8 @@ class Map:
 class Simulator:
     def __init__(self, env, start, goal, rand_obstacles=0, map_selector=None,wrld_size=[50,50], num_humans=0,
                  lidar_range=5.0, map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0,
-                 human_radius = 0.5, use_global_knowledge = False, definition = [1000,1000], human_friction=0.7, visualize=False):
+                 human_radius = 0.5, use_global_knowledge = False, definition = [1000,1000], human_friction=0.7,
+                 visualize=False):
         self.env = env
         self.robots = []
         self.obstacles = []

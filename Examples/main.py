@@ -56,7 +56,6 @@ def act(t, robot):
     # TO INITIALIZE BEFORE RUNNING ACT
     global controller, tick_time_run, path_planning_time, robot_path, map_processing_time
 
-    
     ms = time.process_time_ns()
     map.update(t)
     map_processing_time = map_processing_time + time.process_time_ns() - ms
@@ -125,7 +124,7 @@ def act(t, robot):
             robot['left'].F = -turn_direction * turn_speed
             robot['right'].F = turn_direction * turn_speed
         else:  # Move forward
-            print('speed', speed)
+            # print('speed', speed)
             robot['left'].F = speed
             robot['right'].F = speed
 
@@ -162,8 +161,8 @@ if __name__ == "__main__":
 
     wrld_size = [50,50]
     # NOTE : THIS IS IMPORTANT : THIS IS THE PLACE WHERE YOU CHANGE WHERE TO PUT THE GOAL
-    goal = [25, 25]
     start = [2, 10.5]
+    goal = [25,25]
 
     num_robots = 1
     num_humans = 5
@@ -191,7 +190,7 @@ if __name__ == "__main__":
         controller = None
 
         ts = time.process_time_ns()
-        run_sim(env, lambda t, robot: act(t, robot), total_time=time_allocated, dt_display=5, disp=True)
+        run_sim(env, lambda t, robot: act(t, robot), total_time=time_allocated, dt_display=5, disp=False)
         end = time.process_time_ns()
         total_time = end - ts
         failed_straightup = False
