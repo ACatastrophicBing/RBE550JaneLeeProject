@@ -72,10 +72,10 @@ def act(t, robot):
         print("[ACT] Initializing Starting Path Plan")
         controller = TrajectoryController(sim.map.path_plan(path_planner))
     path_planning_time = path_planning_time + time.process_time_ns() - s
+    path_generated.append(controller.waypoints)
 
     if controller.waypoints is not None:
         target = controller.update_target(robot)
-        path_generated.append(controller.waypoints)
     else:
         print("[ACT] No Path Found")
         if not update_when_robot_moves and not update_when_robot_moves:
@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
         sim = Simulator(env, start, goal, c_space_dilation=dilation, rand_obstacles=20, wrld_size=wrld_size,
                         num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge,
-                        use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=0)
+                        use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=1)
         map = sim.map
         controller = None
 
@@ -232,7 +232,7 @@ if __name__ == "__main__":
         else:
             smoothness = angle_sum / len(robot_path)
 
-        with open(recording_path + "map_0.csv", 'w+') as output:
+        with open(recording_path + "map_1.csv", 'w+') as output:
             writer = csv.writer(output)
             writer.writerow(sim.map.robot_cspace.astype(int))
 

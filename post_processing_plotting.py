@@ -34,7 +34,7 @@ r_paths = [[]] * size
 g_paths = [[]] * size
 print(". . . Loading Map Data")
 map = []
-with open('.\Data\map_0.csv', 'r') as file:
+with open('.\Data\map_1.csv', 'r') as file:
     # Create a CSV reader object
     csv_reader = csv.reader(file)
 
@@ -78,20 +78,23 @@ for i in range(size):
         r_paths[i].append(r_path[-1])
         # print(data['Path_Generated'][j])
         gtemppath = []
-        for loc in data['Path_Generated'][j].strip('[[').strip(']]').split(']\r\n ['):
-            gtemppath.append(np.fromstring(loc, sep=' ') * 20)  # Note the 20 is the map definition / world size
-        # print(gtemppath, prev_path, np.array_equal(gtemppath, prev_path), j)
-        if not np.array_equal(gtemppath, prev_path):
-            prev_path = gtemppath.copy()
-            g_path.append(np.asarray(gtemppath))
-            g_paths[i].append(g_path[-1])
+        try:
+            for loc in data['Path_Generated'][j].strip('[[').strip(']]').split(']\r\n ['):
+                gtemppath.append(np.fromstring(loc, sep=' ') * 20)  # Note the 20 is the map definition / world size
+            # print(gtemppath, prev_path, np.array_equal(gtemppath, prev_path), j)
+            if not np.array_equal(gtemppath, prev_path):
+                prev_path = gtemppath.copy()
+                g_path.append(np.asarray(gtemppath))
+                g_paths[i].append(g_path[-1])
 
-            for k in range(1, len(g_path[j-1])):
-                pp_length = pp_length + math.dist(g_path[j-1][k],g_path[j-1][k-1])
-                if k > 2:
-                    p1 = np.asarray(g_path[j-1][k-1]) - np.asarray(g_path[j-1][k - 2])  # Yes this could be quicker but also, no
-                    p2 = np.asarray(g_path[j-1][k]) - np.asarray(g_path[j-1][k - 1])
-                    pp_smooth = pp_smooth + abs(math.atan2(p2[1]-p1[1], p2[0]-p1[0]))
+                for k in range(1, len(g_path[j-1])):
+                    pp_length = pp_length + math.dist(g_path[j-1][k],g_path[j-1][k-1])
+                    if k > 2:
+                        p1 = np.asarray(g_path[j-1][k-1]) - np.asarray(g_path[j-1][k - 2])  # Yes this could be quicker but also, no
+                        p2 = np.asarray(g_path[j-1][k]) - np.asarray(g_path[j-1][k - 1])
+                        pp_smooth = pp_smooth + abs(math.atan2(p2[1]-p1[1], p2[0]-p1[0]))
+        except:
+            continue
     path_length[i] = pp_length
     path_smoothness[i] = pp_smooth
 
