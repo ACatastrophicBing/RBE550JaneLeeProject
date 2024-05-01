@@ -3,6 +3,7 @@ from Box2D import b2,b2PolygonShape,b2ContactListener
 from Box2D import b2Vec2 as Vector
 from math import cos,sin,radians
 from Box2D import b2RayCastCallback
+import time
 
 from IPython.display import clear_output
 
@@ -1240,6 +1241,12 @@ def display(env,robot=None,show=True):
 
     if show:
         plt.show()
+        # print("Shown")
+        # t = time.localtime()
+        # current_time = time.strftime("%H_%M_%S", t)
+        # file = '/Users/timothydemaro/Documents/GitHub/RBE550JaneLeeProject/Data/'+current_time+'.png'
+        # plt.savefig(file)
+        # print("Saved")
     return fig
 
 def close(env,fig):

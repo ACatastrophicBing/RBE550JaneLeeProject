@@ -327,7 +327,7 @@ class Map:
                 rrt = RRT(self.robot_cspace, self.robot_position, self.goal)
                 if algorithm == "RRT":
                     print('Starting RRT')
-                    rrt.RRT(n_pts=14000)  
+                    rrt.RRT(n_pts=15000)  
                     if self.visualize:
                         print("[MAP] Visualizing Map")
                         rrt.draw_map()
@@ -361,6 +361,7 @@ class Map:
                         return sim_x, sim_y
 
                     transformed_path = [transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]
+                    transformed_path = np.array(transformed_path)
                     # print('Transformed path:', transformed_path)
                     return transformed_path
                 else:
@@ -401,7 +402,7 @@ class Map:
 
                 transformed_path = [transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]               
                 print('Transformed Path:', transformed_path)
-
+                transformed_path = np.array(transformed_path)
                 return transformed_path
             else:
                 print("No path found using Informed RRT*")

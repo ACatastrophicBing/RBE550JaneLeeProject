@@ -134,12 +134,12 @@ def act(t, robot):
         robot['right'].F = 0
 
     for human in sim.humans:
-        if human.read_distance() < 2:
-            # Turn
-            human.F = 0
-            human.τ = 0.01
-        else:
-            human.F = 0.3
+        # if human.read_distance() < 2:
+        #     # Turn
+        #     human.F = 0
+        #     human.τ = 0.01
+        # else:
+        human.F = 0.3
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -161,12 +161,12 @@ if __name__ == "__main__":
 
     wrld_size = [50,50]
     # NOTE : THIS IS IMPORTANT : THIS IS THE PLACE WHERE YOU CHANGE WHERE TO PUT THE GOAL
-    start = [2, 10.5]
+    start = [2, 2]
     goal = [25,25]
 
     num_robots = 1
-    num_humans = 0
-    num_obstacles = 20
+    num_humans = 5
+    num_obstacles = 50
     global tick_time_run, path_planning_time, map_processing_time, robot_path, path_generated
 
     if args.path_planner == "informed_RRT_star":
@@ -185,7 +185,7 @@ if __name__ == "__main__":
 
         sim = Simulator(env, start, goal, c_space_dilation=dilation, rand_obstacles=20, wrld_size=wrld_size,
                         num_humans=num_humans, global_map_init=args.dont_init_with_global_knowledge,
-                        use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=1)
+                        use_global_knowledge=args.use_global_knowledge, visualize=visualize, map_selector=0)
         map = sim.map
         controller = None
 
