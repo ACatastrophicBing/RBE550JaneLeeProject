@@ -122,7 +122,7 @@ episodes = 9
 size = int(episodes) +1
 prefix = '.\\RevisedData\\'
 suffix = '_Global_Init_5humans'
-trials= ['PRM', 'RRT', 'RRTStar', 'informed_RRT_star', 'astar', 'dijkstra']
+trials= ['PRM', 'RRT', 'RRTStar', 'informed_RRT_star'] #'astar', 'dijkstra'
 file_names = [(prefix+trial_name+suffix) for trial_name in trials]
 
 # Dictionary to store metrics for each trial
@@ -133,7 +133,7 @@ map_data = []
 with open('.\RevisedData\map_1.csv', 'r') as file:
     csv_reader = csv.reader(file)
     for row in csv_reader:
-        if row:
+        if row and row != '...':
             map_data.append(np.fromstring(row[0], sep=' '))
 map_data = np.flip(np.asarray(map_data), axis=1)
 
@@ -211,6 +211,34 @@ std_rp_smooth = {trial: np.std(trial_metrics[trial]['robot_smoothness']) for tri
 mean_rp_length = {trial: np.mean(trial_metrics[trial]['distance_travelled']) for trial in trials}
 mean_pp_smooth = {trial: np.mean(trial_metrics[trial]['path_smoothness']) for trial in trials}
 mean_rp_smooth = {trial: np.mean(trial_metrics[trial]['robot_smoothness']) for trial in trials}
+
+# import matplotlib.pyplot as plt
+
+# Metrics to plot
+metrics = ['success', 'processing_time', 'pp_time', 'simulation_world_time', 
+           'distance_travelled', 'robot_smoothness', 'path_smoothness', 'path_length']
+
+# Plot each metric
+for metric in metrics:
+    plt.figure(figsize=(10, 6))
+    plt.title(f'{metric.capitalize()} Across Trials')
+    plt.xlabel('Trials')
+    plt.ylabel(metric.capitalize())
+
+    # Plot data for each trial
+    for trial_name in trials:
+        trial_data = trial_metrics[trial_name][metric]
+        plt.plot(range(len(trial_data)), trial_data, label=trial_name)
+
+    # Plot mean and standard deviation if available
+    if f'mean_{metric}' in globals() and f'std_{metric}' in globals():
+        mean_data = [globals()[f'mean_{metric}']] * len(trials)
+        std_data = [globals()[f'std_{metric}']] * len(trials)
+        plt.errorbar(range(len(trials)), mean_data, yerr=std_data, fmt='o', color='black', label='Mean ± Std')
+
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
 
 
 
