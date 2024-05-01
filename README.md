@@ -1,5 +1,5 @@
 # RBE 550 Project
-Welcome! Unsure why you ended up here but here you are. This is a project with a custom built simulation environment using the Robot373 library, along with a fully
+Welcome! This is a project with a custom built simulation environment using the Robot373 library.
 
 ## Install
 
@@ -45,3 +45,5 @@ This will plot file 0 or all files with the name up to episode num_episodes
 Execute this code at your own risk, it creates a lot of data and while fast, is still a simulation so it'll take an hour or two to run 100 iterations
 
 Also, not everything can be changed by calling parser flags, so if you want to change the map, start, or goal, you'll have to change those variables manually in main. Depending on what map you ran and if you want to plot the data, you will also need tom modify post_processing_plotting.py. The plotting is not very informative, so to really understand what is going on there, you will need to look at the plotting code itself.
+
+Additionally, algorithms that were not able to be used, but were still coded from paper pseudocode are located in attempted algorithms.
