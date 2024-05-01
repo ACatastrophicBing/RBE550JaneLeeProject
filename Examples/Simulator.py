@@ -421,7 +421,7 @@ class Map:
             transformed_path = [self.transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]
             print(f"Dijkstra found a path in {steps} steps.")
             print('Transformed path:', transformed_path)
-
+            transformed_path = np.array(transformed_path)
             return transformed_path
 
         if algorithm == "astar":
@@ -435,6 +435,7 @@ class Map:
             sim_width, sim_height = 50, 50
             transformed_path = [self.transform_coordinates(point, rrt_height, sim_width, sim_height) for point in path]
             print('Transformed path:', transformed_path)
+            transformed_path = np.array(transformed_path)
             return transformed_path
 
         if algorithm == "AD*" and self.robot_flag:
