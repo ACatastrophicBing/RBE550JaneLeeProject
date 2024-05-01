@@ -161,8 +161,8 @@ if __name__ == "__main__":
 
     wrld_size = [50,50]
     # NOTE : THIS IS IMPORTANT : THIS IS THE PLACE WHERE YOU CHANGE WHERE TO PUT THE GOAL
-    start = [2, 2]
-    goal = [25,25]
+    start = [5, 47]
+    goal = [45,42]
 
     num_robots = 1
     num_humans = 5
