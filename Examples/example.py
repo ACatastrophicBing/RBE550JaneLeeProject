@@ -259,14 +259,14 @@ class Map:
 
 
         # Start and goal
-        start = self.robot_position
-        goal = self.world_to_map([40, 10]) 
+        start = (self.robot_position[0]+20,self.robot_position[1])
+        goal = self.world_to_map([25, 25]) 
 
         if algorithm == "PRM":
             print(type(self.robot_cspace))
             print(self.robot_cspace)
             self.PRM = PRM(self.robot_cspace)
-            self.PRM.sample(n_pts=2000, sampling_method="random")
+            self.PRM.sample(n_pts=2500, sampling_method="random")
             if len(self.PRM.samples) == 0:
                 print("No samples generated.")
                 return None
@@ -445,7 +445,7 @@ class Map:
 
 class Simulator:
     def __init__(self, env, rand_obstacles=0, map_selector=None,wrld_size=[24,24], num_humans=0,
-                 lidar_range=5.0, map_update_rate = 100, global_map_init = True, c_space_dilation = 1.0,
+                 lidar_range=5.0, map_update_rate = 100, global_map_init = True, c_space_dilation = 1.5,
                  human_radius = 0.5, use_global_knowledge = False, definition = [1000,1000], human_friction=0.7):
         self.env = env
         self.robots = []
@@ -465,60 +465,60 @@ class Simulator:
                 self.obstacles.append(Wall(self.env, x=28.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=37.5, y=49, width=25, height=2, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=49.5, y=24, width=1, height=48, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=18.5, y=38.5, width=-13, height=1, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=37.5, y=25, width=-1, height=28, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=32.5, y=25, width=-1, height=16, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=26.5, y=33.5, width=-5, height=1, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=42.5, y=6.5, width=3, height=1, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=42.5, y=25.5, width=-1, height=37, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=22, y=43.5, width=-14, height=1, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=15.5, y=38.5, width=9, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=18.5, y=38.5, width=13, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=37.5, y=25, width=1, height=28, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=32.5, y=25, width=1, height=16, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=26.5, y=33.5, width=5, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=41.5, y=6.5, width=3, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=42.5, y=25.5, width=1, height=37, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=22, y=43.5, width=14, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=22, y=38.5, width=22, height=1, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=10.5, y=32.5, width=1, height=13, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=10.5, y=17, width=1, height=12, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=24.5, y=11.5, width=11, height=11, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=24, y=11.5, width=26, height=1, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=26.5, y=28.5, width=5, height=1, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=33, y=16.5, width=2, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=32, y=16.5, width=2, height=1, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=22, y=16.5, width=14, height=1, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=15.5, y=25, width=1, height=16, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=19.5, y=33.5, width=9, height=1, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=21.5, y=6.5, width=33, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=24, y=33.5, width=18, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=21, y=6.5, width=32, height=1, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=5.5, y=25.5, width=1, height=37, angle=0, color=obstacle_color))
-                self.obstacles.append(Wall(self.env, x=15, y=43.5, width=18, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=24, y=43.5, width=36, height=1, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=25, y=1, width=48, height=2, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=0.5, y=24, width=1, height=48, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=9.5, y=49, width=19, height=2, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=24.5, y=39.5, width=1, height=21, angle=0, color=obstacle_color))
                 self.obstacles.append(Wall(self.env, x=24.5, y=21.5, width=9, height=1, angle=0, color=obstacle_color))
         else:
-            obstacle_color = 'purple'
-            self.obstacles.append(Wall(self.env, x=20.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=28.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=37.5, y=49, width=25, height=2, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=49.5, y=24, width=1, height=48, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=18.5, y=38.5, width=13, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=37.5, y=25, width=1, height=28, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=32.5, y=25, width=1, height=16, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=26.5, y=33.5, width=5, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=42.5, y=6.5, width=3, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=42.5, y=25.5, width=1, height=37, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=22, y=43.5, width=14, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=15.5, y=38.5, width=9, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=10.5, y=32.5, width=1, height=13, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=10.5, y=17, width=1, height=12, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=24.5, y=11.5, width=11, height=11, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=26.5, y=28.5, width=5, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=33, y=16.5, width=2, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=22, y=16.5, width=14, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=15.5, y=25, width=1, height=16, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=19.5, y=33.5, width=9, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=21.5, y=6.5, width=33, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=5.5, y=25.5, width=1, height=37, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=15, y=43.5, width=18, height=1, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=25, y=1, width=48, height=2, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=0.5, y=24, width=1, height=48, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=9.5, y=49, width=19, height=2, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=24.5, y=39.5, width=1, height=21, angle=0, color=obstacle_color))
-            self.obstacles.append(Wall(self.env, x=24.5, y=21.5, width=9, height=1, angle=0, color=obstacle_color))
+                obstacle_color = 'purple'
+                # self.obstacles.append(Wall(self.env, x=20.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=28.5, y=25.5, width=1, height=7, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=37.5, y=49, width=25, height=2, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=49.5, y=24, width=1, height=48, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=18.5, y=38.5, width=13, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=37.5, y=25, width=1, height=28, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=32.5, y=25, width=1, height=13, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=26.5, y=33.5, width=5, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=41.5, y=6.5, width=1.5, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=42.5, y=25.5, width=1, height=37, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=22, y=43.5, width=14, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=22, y=38.5, width=22, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=10.5, y=32.5, width=1, height=13, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=10.5, y=17, width=1, height=12, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=24, y=11.5, width=26, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=26.5, y=28.5, width=4, height=1, angle=0, color=obstacle_color))
+                # self.obstacles.append(Wall(self.env, x=32, y=16.5, width=2, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=22, y=16.5, width=12, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=15.5, y=25, width=1, height=16, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=24, y=33.5, width=18, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=21, y=6.5, width=32, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=5.5, y=25.5, width=1, height=37, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=24, y=43.5, width=36, height=1, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=25, y=1, width=48, height=2, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=0.5, y=24, width=1, height=48, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=9.5, y=49, width=19, height=2, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=24.5, y=39.5, width=1, height=21, angle=0, color=obstacle_color))
+                self.obstacles.append(Wall(self.env, x=24.5, y=21.5, width=9, height=1, angle=0, color=obstacle_color))
             # for i in range(rand_obstacles):
             #     self.obstacles.append(Box(self.env, x=Simulator.randbetween(8, 22), y=Simulator.randbetween(8, 22),
             #         width=Simulator.randbetween(.2, 1.2), height=2, angle=Simulator.randbetween(0, 360), color='purple'))
@@ -659,12 +659,12 @@ if __name__ == "__main__":
     num_obstacles = 20
     sim = Simulator(env, rand_obstacles=20,wrld_size=wrld_size, num_humans=num_humans, global_map_init=True ,use_global_knowledge=True)
     map = sim.map
-    waypoints = map.path_plan("dijkstra")
+    waypoints = map.path_plan("PRM")
     # waypoints = [(3, 2), (10, 2), (15, 15), (20, 20)]
 
     if waypoints:
         controller = TrajectoryController(waypoints)
-        run_sim(env, lambda t, robot: act(t, robot, controller), total_time=400, dt_display=10)
+        run_sim(env, lambda t, robot: act(t, robot, controller), total_time=1000, dt_display=20)
     else:
         print("No valid waypoints generated, simulation will not start.", waypoints)
 # NOTE : If you are looking for a function call or data, do print(dir(data)) and for type do print(type(data))
